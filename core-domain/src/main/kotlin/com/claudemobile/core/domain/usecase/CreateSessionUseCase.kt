@@ -6,30 +6,31 @@ import com.claudemobile.core.common.ErrorCode
 import com.claudemobile.core.common.asFailure
 import com.claudemobile.core.common.asSuccess
 import com.claudemobile.core.domain.model.Session
+import com.claudemobile.core.domain.providers.ProviderProfileStore
 import com.claudemobile.core.domain.repository.ConversationRepository
-import com.claudemobile.core.domain.repository.CredentialStore
 import javax.inject.Inject
 
 /**
  * Creates a new conversation session after validating that the workspace path is non-empty
- * and that an API key is configured.
+ * and that an active Provider_Profile is configured.
  */
 public class CreateSessionUseCase @Inject constructor(
     private val conversationRepository: ConversationRepository,
-    private val credentialStore: CredentialStore,
+    private val providerProfileStore: ProviderProfileStore,
 ) {
 
     /**
      * Creates a new session with the given [title] and [workspacePath].
      *
      * Returns [AppResult.Failure] if:
-     * - No API key is stored (ErrorCode.PERMISSION_DENIED)
+     * - No active Provider_Profile is set (ErrorCode.PERMISSION_DENIED)
      * - The workspace path is blank (ErrorCode.INVALID_ARGUMENT)
      */
     public suspend operator fun invoke(title: String, workspacePath: String): AppResult<Session> {
-        if (!credentialStore.hasApiKey()) {
+        val activeProfile = providerProfileStore.getActive()
+        if (activeProfile == null) {
             return AppError(
-                message = "No API key configured. Please set an API key before creating a session.",
+                message = "No active provider configured. Please select a provider before creating a session.",
                 code = ErrorCode.PERMISSION_DENIED,
             ).asFailure()
         }

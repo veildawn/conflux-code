@@ -137,19 +137,6 @@ class SettingsStorePropertyTest : FunSpec({
         }
     }
 
-    test("Property 7: write valid systemPrompt, read back yields same value") {
-        checkAll(PropTestConfig(iterations = 100), Arb.string(0..200)) { prompt ->
-            val (_, settingsStore) = createSettingsStore()
-
-            settingsStore.setSystemPrompt(prompt)
-
-            settingsStore.settings.test {
-                val settings = awaitItem()
-                settings.systemPrompt shouldBe prompt
-            }
-        }
-    }
-
     test("Property 7: write valid defaultWorkspacePath, read back yields same value") {
         checkAll(PropTestConfig(iterations = 100), arbWorkspacePath()) { path ->
             val (_, settingsStore) = createSettingsStore()

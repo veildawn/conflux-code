@@ -5,7 +5,6 @@ package com.claudemobile.core.domain.model
  */
 public data class AppSettings(
     val modelId: String = "claude-sonnet-4-20250514",
-    val systemPrompt: String = "",
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val fontScale: Float = 1.0f,
     val streamingRenderRate: Long = 50L,
@@ -39,7 +38,6 @@ public object PreferenceKeys {
         level = DeprecationLevel.WARNING,
     )
     public const val MODEL_ID: String = "model_id"
-    public const val SYSTEM_PROMPT: String = "system_prompt"
     public const val THEME_MODE: String = "theme_mode"
     public const val FONT_SCALE: String = "font_scale"
     public const val STREAMING_RENDER_RATE: String = "streaming_render_rate_ms"

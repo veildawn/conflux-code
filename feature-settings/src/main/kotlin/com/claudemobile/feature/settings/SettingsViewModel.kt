@@ -46,7 +46,6 @@ public data class SettingsUiState(
  * Actions that can be dispatched to the SettingsViewModel.
  */
 public sealed interface SettingsAction {
-    public data class SetSystemPrompt(val prompt: String) : SettingsAction
     public data class SetThemeMode(val mode: ThemeMode) : SettingsAction
     public data class SetFontScale(val scale: Float) : SettingsAction
     public data class SetStreamingRenderRate(val rateMs: Long) : SettingsAction
@@ -120,7 +119,6 @@ public class SettingsViewModel @Inject constructor(
      */
     public fun onAction(action: SettingsAction) {
         when (action) {
-            is SettingsAction.SetSystemPrompt -> setSystemPrompt(action.prompt)
             is SettingsAction.SetThemeMode -> setThemeMode(action.mode)
             is SettingsAction.SetFontScale -> setFontScale(action.scale)
             is SettingsAction.SetStreamingRenderRate -> setStreamingRenderRate(action.rateMs)
@@ -139,12 +137,6 @@ public class SettingsViewModel @Inject constructor(
             settingsStore.settings.collect { settings ->
                 _uiState.update { it.copy(settings = settings) }
             }
-        }
-    }
-
-    private fun setSystemPrompt(prompt: String) {
-        viewModelScope.launch {
-            settingsStore.setSystemPrompt(prompt)
         }
     }
 

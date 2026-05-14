@@ -25,6 +25,7 @@ import javax.inject.Inject
 public class SendMessageUseCase @Inject constructor(
     private val conversationRepository: ConversationRepository,
     private val cliBridge: CliBridge,
+    private val prootEnvironmentProvider: ProotEnvironmentProvider,
     private val timeProvider: TimeProvider,
     private val uuidGenerator: UuidGenerator,
 ) {
@@ -69,11 +70,34 @@ public class SendMessageUseCase @Inject constructor(
         // Persist before forwarding to bridge (Requirement 5.3)
         val persistedMessage = conversationRepository.insertMessage(message)
 
-        return try {
-            // Forward to bridge stdin with newline terminator
-            cliBridge.write((content + "\n").toByteArray(Charsets.UTF_8))
+        // Resolve workspace path from the session for the spawn config
+        val session = conversationRepository.getSession(sessionId)
+        val workspacePath = session?.workspacePath ?: "/workspace"
 
-            // Mark as complete after successful write
+        return try {
+            // In --print mode, each user turn spawns a fresh CLI process.
+            // Terminate any existing process first, then spawn with -p <content>.
+            cliBridge.terminate()
+
+            val config = prootEnvironmentProvider.buildSpawnConfig(
+                workspacePath = workspacePath,
+                apiKey = "PLACEHOLDER_OVERWRITTEN_BY_SPAWN_ENV_ADAPTER",
+            )
+            // Append "-p" and the user's message to the args list
+            val configWithPrompt = config.copy(
+                args = config.args + listOf("-p", content)
+            )
+            val spawnResult = cliBridge.spawn(configWithPrompt)
+            if (spawnResult.isFailure) {
+                conversationRepository.updateMessageStatus(persistedMessage.id, MessageStatus.ERROR)
+                return AppError(
+                    message = "Failed to spawn CLI: ${spawnResult.exceptionOrNull()?.message}",
+                    code = ErrorCode.PROCESS_ERROR,
+                    cause = spawnResult.exceptionOrNull(),
+                ).asFailure()
+            }
+
+            // Mark as complete after successful spawn
             conversationRepository.updateMessageStatus(persistedMessage.id, MessageStatus.COMPLETE)
 
             persistedMessage.copy(status = MessageStatus.COMPLETE).asSuccess()
@@ -86,6 +110,36 @@ public class SendMessageUseCase @Inject constructor(
                 code = ErrorCode.PROCESS_ERROR,
                 cause = e,
             ).asFailure()
+        }
+    }
+
+    internal companion object {
+        /**
+         * Escapes a string for safe embedding in a JSON value (including surrounding quotes).
+         */
+        fun escapeJsonString(value: String): String {
+            val sb = StringBuilder(value.length + 2)
+            sb.append('"')
+            for (ch in value) {
+                when (ch) {
+                    '"' -> sb.append("\\\"")
+                    '\\' -> sb.append("\\\\")
+                    '\n' -> sb.append("\\n")
+                    '\r' -> sb.append("\\r")
+                    '\t' -> sb.append("\\t")
+                    '\b' -> sb.append("\\b")
+                    '\u000C' -> sb.append("\\f")
+                    else -> {
+                        if (ch.code < 0x20) {
+                            sb.append("\\u%04x".format(ch.code))
+                        } else {
+                            sb.append(ch)
+                        }
+                    }
+                }
+            }
+            sb.append('"')
+            return sb.toString()
         }
     }
 }

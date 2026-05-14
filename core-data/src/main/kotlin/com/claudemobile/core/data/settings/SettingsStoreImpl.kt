@@ -45,7 +45,6 @@ public class SettingsStoreImpl @Inject constructor(
     private companion object {
         @Suppress("DEPRECATION")
         val KEY_MODEL_ID = stringPreferencesKey(PreferenceKeys.MODEL_ID)
-        val KEY_SYSTEM_PROMPT = stringPreferencesKey(PreferenceKeys.SYSTEM_PROMPT)
         val KEY_THEME_MODE = stringPreferencesKey(PreferenceKeys.THEME_MODE)
         val KEY_FONT_SCALE = floatPreferencesKey(PreferenceKeys.FONT_SCALE)
         val KEY_STREAMING_RENDER_RATE = longPreferencesKey(PreferenceKeys.STREAMING_RENDER_RATE)
@@ -62,7 +61,6 @@ public class SettingsStoreImpl @Inject constructor(
             // the effective model is derived from the Active_Profile. The field is
             // kept in AppSettings for one release to avoid breaking callers; it
             // always returns the default value from this point forward.
-            systemPrompt = prefs[KEY_SYSTEM_PROMPT] ?: DEFAULTS.systemPrompt,
             themeMode = prefs[KEY_THEME_MODE]?.toThemeModeOrDefault() ?: DEFAULTS.themeMode,
             fontScale = prefs[KEY_FONT_SCALE]?.validatedFontScale() ?: DEFAULTS.fontScale,
             streamingRenderRate = prefs[KEY_STREAMING_RENDER_RATE]?.validatedRenderRate()
@@ -84,12 +82,6 @@ public class SettingsStoreImpl @Inject constructor(
     override suspend fun setModelId(modelId: String) {
         dataStore.edit { prefs ->
             prefs[KEY_MODEL_ID] = modelId
-        }
-    }
-
-    override suspend fun setSystemPrompt(prompt: String) {
-        dataStore.edit { prefs ->
-            prefs[KEY_SYSTEM_PROMPT] = prompt
         }
     }
 

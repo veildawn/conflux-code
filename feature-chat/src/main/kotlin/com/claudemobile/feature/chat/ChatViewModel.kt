@@ -105,14 +105,8 @@ public class ChatViewModel @Inject constructor(
                 )
             }
 
-            // Spawn the Claude CLI process for this session's workspace.
-            // This is idempotent — if already running, it's a no-op.
-            val spawnResult = spawnCliUseCase(session.workspacePath)
-            if (spawnResult is AppResult.Failure) {
-                _uiState.update {
-                    it.copy(errorMessage = spawnResult.error.message)
-                }
-            }
+            // In --print mode, CLI is spawned per-message by SendMessageUseCase.
+            // No eager spawn needed here.
 
             // Observe messages reactively
             messagesCollectionJob = viewModelScope.launch(dispatchers.io) {

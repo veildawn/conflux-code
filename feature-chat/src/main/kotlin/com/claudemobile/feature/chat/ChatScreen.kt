@@ -121,8 +121,7 @@ public fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .imePadding(),
+                .padding(paddingValues),
         ) {
             // Offline banner (Requirement 11.1)
             OfflineBanner(

@@ -351,7 +351,6 @@ private class FakeSettingsStore(initialModel: String?) : SettingsStore {
         model = modelId
     }
 
-    override suspend fun setSystemPrompt(prompt: String) {}
     override suspend fun setThemeMode(mode: com.claudemobile.core.domain.model.ThemeMode) {}
     override suspend fun setFontScale(scale: Float) {}
     override suspend fun setStreamingRenderRate(rateMs: Long) {}

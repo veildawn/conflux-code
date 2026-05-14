@@ -88,21 +88,6 @@ class SettingsStoreImplTest {
     }
 
     @Nested
-    inner class SetSystemPrompt {
-
-        @Test
-        fun `setSystemPrompt persists and emits updated value`() = runTest(testDispatcher) {
-            settingsStore.settings.test {
-                awaitItem() // defaults
-
-                settingsStore.setSystemPrompt("You are a helpful assistant.")
-                val updated = awaitItem()
-                updated.systemPrompt shouldBe "You are a helpful assistant."
-            }
-        }
-    }
-
-    @Nested
     inner class SetThemeMode {
 
         @Test

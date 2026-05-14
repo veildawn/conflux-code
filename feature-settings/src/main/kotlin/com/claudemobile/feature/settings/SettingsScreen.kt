@@ -140,14 +140,6 @@ internal fun SettingsScreenContent(
 
             HorizontalDivider()
 
-            // System Prompt
-            SystemPromptSection(
-                systemPrompt = uiState.settings.systemPrompt,
-                onSystemPromptChange = { onAction(SettingsAction.SetSystemPrompt(it)) }
-            )
-
-            HorizontalDivider()
-
             // Language
             LanguageSection(
                 current = uiState.settings.appLanguage,
@@ -312,30 +304,6 @@ private fun ProvidersNavigationItem(onNavigateToProviders: () -> Unit) {
             .testTag(PROVIDERS_ENTRY_TAG)
             .semantics { contentDescription = itemDescription },
     )
-}
-
-@Composable
-private fun SystemPromptSection(
-    systemPrompt: String,
-    onSystemPromptChange: (String) -> Unit,
-) {
-    val systemPromptDescription = stringResource(R.string.settings_system_prompt_description)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = stringResource(R.string.settings_model_title),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        OutlinedTextField(
-            value = systemPrompt,
-            onValueChange = onSystemPromptChange,
-            label = { Text(stringResource(R.string.settings_system_prompt_label)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = systemPromptDescription },
-            minLines = 3,
-            maxLines = 6,
-        )
-    }
 }
 
 @Composable

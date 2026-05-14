@@ -9,7 +9,6 @@ import com.claudemobile.core.domain.bridge.CliBridge
 import com.claudemobile.core.domain.bridge.ProcessHandle
 import com.claudemobile.core.domain.bridge.ProcessState
 import com.claudemobile.core.domain.bridge.SpawnConfig
-import com.claudemobile.core.domain.repository.CredentialStore
 import javax.inject.Inject
 
 /**
@@ -18,15 +17,18 @@ import javax.inject.Inject
  *
  * The use case:
  * 1. Checks if the bridge already has a running process (idempotent).
- * 2. Retrieves the API key from the credential store.
- * 3. Builds a [SpawnConfig] that launches proot → claude inside the rootfs.
- * 4. Calls [CliBridge.spawn] to fork the process via the JNI PTY interface.
+ * 2. Builds a [SpawnConfig] that launches proot → claude inside the rootfs.
+ * 3. Calls [CliBridge.spawn] to fork the process via the JNI PTY interface.
+ *
+ * Note: API key / auth token injection is handled by [SpawnEnvAdapter] inside
+ * [CliBridge.spawn], which reads the Active_Profile at spawn time (R6.1).
+ * This use case no longer checks credentials itself — if no profile is active,
+ * the bridge will emit [BridgeError.NoActiveProfile] (R6.8).
  *
  * Requirements: 2.1, 2.2, 2.3, 6.4
  */
 public class SpawnCliUseCase @Inject constructor(
     private val cliBridge: CliBridge,
-    private val credentialStore: CredentialStore,
     private val prootEnvironmentProvider: ProotEnvironmentProvider,
 ) {
     /**
@@ -35,7 +37,7 @@ public class SpawnCliUseCase @Inject constructor(
      * @param workspacePath Absolute path on the host filesystem to bind-mount
      *                      as `/workspace` inside proot.
      * @return [AppResult.Success] with the [ProcessHandle] if spawned (or already running),
-     *         or [AppResult.Failure] if the API key is missing or spawn fails.
+     *         or [AppResult.Failure] if no active profile is set or spawn fails.
      */
     public suspend operator fun invoke(workspacePath: String): AppResult<ProcessHandle> {
         // Idempotent: if already running, return immediately.
@@ -43,17 +45,13 @@ public class SpawnCliUseCase @Inject constructor(
             return ProcessHandle(pid = -1, startedAt = java.time.Instant.now()).asSuccess()
         }
 
-        val apiKey = credentialStore.getApiKey()
-        if (apiKey.isNullOrBlank()) {
-            return AppError(
-                message = "No API key configured. Please add your Anthropic API key in Settings.",
-                code = ErrorCode.PERMISSION_DENIED,
-            ).asFailure()
-        }
-
+        // Build the spawn config. The apiKey placeholder below is overwritten
+        // by SpawnEnvAdapter inside CliBridge.spawn() with the real value from
+        // the Active_Profile. We pass a non-empty placeholder so the config
+        // builder doesn't trip on blank-string guards.
         val config = prootEnvironmentProvider.buildSpawnConfig(
             workspacePath = workspacePath,
-            apiKey = apiKey,
+            apiKey = "PLACEHOLDER_OVERWRITTEN_BY_SPAWN_ENV_ADAPTER",
         )
 
         return try {

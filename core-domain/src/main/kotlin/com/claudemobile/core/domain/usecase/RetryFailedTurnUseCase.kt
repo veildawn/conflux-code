@@ -69,8 +69,13 @@ public class RetryFailedTurnUseCase @Inject constructor(
                 )
             }
 
-            // Resend the same user message content to the bridge — no new message created
-            cliBridge.write((lastUserMessage.content + "\n").toByteArray(Charsets.UTF_8))
+            // Resend the same user message content to the bridge as stream-json
+            val jsonMessage = buildString {
+                append("""{"type":"user_message","content":""")
+                append(SendMessageUseCase.escapeJsonString(lastUserMessage.content))
+                append("}\n")
+            }
+            cliBridge.write(jsonMessage.toByteArray(Charsets.UTF_8))
 
             lastUserMessage.asSuccess()
         } catch (e: Exception) {

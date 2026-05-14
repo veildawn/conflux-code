@@ -31,11 +31,6 @@ public interface SettingsStore {
     public suspend fun setModelId(modelId: String)
 
     /**
-     * Sets the default system prompt.
-     */
-    public suspend fun setSystemPrompt(prompt: String)
-
-    /**
      * Sets the UI theme mode.
      */
     public suspend fun setThemeMode(mode: ThemeMode)

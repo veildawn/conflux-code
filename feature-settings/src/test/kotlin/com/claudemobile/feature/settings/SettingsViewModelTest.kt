@@ -145,16 +145,6 @@ class SettingsViewModelTest {
     // -----------------------------------------------------------------------
 
     @Test
-    fun `SetSystemPrompt action updates settings store`() = runTest {
-        advanceUntilIdle()
-
-        viewModel.onAction(SettingsAction.SetSystemPrompt("You are helpful"))
-        advanceUntilIdle()
-
-        coVerify { settingsStore.setSystemPrompt("You are helpful") }
-    }
-
-    @Test
     fun `SetThemeMode action updates settings store`() = runTest {
         advanceUntilIdle()
 

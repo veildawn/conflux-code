@@ -19,8 +19,6 @@
     <string name="settings_model_title">模型</string>
     <string name="settings_model_id_label">模型 ID</string>
     <string name="settings_model_id_description">Claude 模型标识符</string>
-    <string name="settings_system_prompt_label">系统提示词</string>
-    <string name="settings_system_prompt_description">默认系统提示词</string>
 
     <!-- Appearance / UI Preferences section -->
     <string name="settings_appearance_title">外观</string>

@@ -4,8 +4,11 @@ import com.claudemobile.core.common.AppResult
 import com.claudemobile.core.common.ErrorCode
 import com.claudemobile.core.domain.model.Session
 import com.claudemobile.core.domain.model.SessionId
+import com.claudemobile.core.domain.providers.AuthHeaderStyle
+import com.claudemobile.core.domain.providers.PresetReference
+import com.claudemobile.core.domain.providers.ProviderProfile
+import com.claudemobile.core.domain.providers.ProviderProfileStore
 import com.claudemobile.core.domain.repository.ConversationRepository
-import com.claudemobile.core.domain.repository.CredentialStore
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -17,13 +20,26 @@ import java.time.Instant
 class CreateSessionUseCaseTest : DescribeSpec({
 
     val conversationRepository = mockk<ConversationRepository>()
-    val credentialStore = mockk<CredentialStore>()
-    val useCase = CreateSessionUseCase(conversationRepository, credentialStore)
+    val providerProfileStore = mockk<ProviderProfileStore>()
+    val useCase = CreateSessionUseCase(conversationRepository, providerProfileStore)
+
+    val activeProfile = ProviderProfile(
+        profileId = "profile-1",
+        displayName = "GLM Coding",
+        baseUrl = "https://open.bigmodel.cn/api/anthropic",
+        apiKey = "test-key-123",
+        model = "glm-4.6",
+        smallFastModel = null,
+        authHeaderStyle = AuthHeaderStyle.AuthToken,
+        presetReference = PresetReference.Preset("glm_coding_plan"),
+        createdAt = Instant.now(),
+        updatedAt = Instant.now(),
+    )
 
     describe("CreateSessionUseCase") {
 
-        it("returns failure when no API key is configured") {
-            coEvery { credentialStore.hasApiKey() } returns false
+        it("returns failure when no active provider profile is configured") {
+            coEvery { providerProfileStore.getActive() } returns null
 
             val result = useCase("Test Session", "/workspace/path")
 
@@ -32,7 +48,7 @@ class CreateSessionUseCaseTest : DescribeSpec({
         }
 
         it("returns failure when workspace path is blank") {
-            coEvery { credentialStore.hasApiKey() } returns true
+            coEvery { providerProfileStore.getActive() } returns activeProfile
 
             val result = useCase("Test Session", "   ")
 
@@ -41,7 +57,7 @@ class CreateSessionUseCaseTest : DescribeSpec({
         }
 
         it("returns failure when workspace path is empty") {
-            coEvery { credentialStore.hasApiKey() } returns true
+            coEvery { providerProfileStore.getActive() } returns activeProfile
 
             val result = useCase("Test Session", "")
 
@@ -58,7 +74,7 @@ class CreateSessionUseCaseTest : DescribeSpec({
                 lastActivityAt = Instant.now(),
                 messageCount = 0,
             )
-            coEvery { credentialStore.hasApiKey() } returns true
+            coEvery { providerProfileStore.getActive() } returns activeProfile
             coEvery { conversationRepository.createSession("Test Session", "/workspace/path") } returns expectedSession
 
             val result = useCase("Test Session", "/workspace/path")
@@ -76,7 +92,7 @@ class CreateSessionUseCaseTest : DescribeSpec({
                 lastActivityAt = Instant.now(),
                 messageCount = 0,
             )
-            coEvery { credentialStore.hasApiKey() } returns true
+            coEvery { providerProfileStore.getActive() } returns activeProfile
             coEvery { conversationRepository.createSession("New Session", "/workspace") } returns expectedSession
 
             val result = useCase("", "/workspace")

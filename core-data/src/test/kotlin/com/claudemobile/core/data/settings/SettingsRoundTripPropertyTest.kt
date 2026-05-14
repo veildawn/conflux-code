@@ -79,7 +79,7 @@ class SettingsRoundTripPropertyTest : FunSpec({
             Arb.enum<ThemeMode>(),
             arbModelId(),
             Arb.string(0..200)
-        ) { fontScale, streamingRenderRate, themeMode, modelId, systemPrompt ->
+        ) { fontScale, streamingRenderRate, themeMode, modelId ->
             val (_, settingsStore) = createSettingsStore()
 
             // Write all settings
@@ -91,7 +91,6 @@ class SettingsRoundTripPropertyTest : FunSpec({
             // via getModel(), but do not assert it round-trips through settings.
             @Suppress("DEPRECATION")
             settingsStore.setModelId(modelId)
-            settingsStore.setSystemPrompt(systemPrompt)
 
             // Read back and verify round-trip (modelId excluded — see above)
             settingsStore.settings.test {
@@ -101,7 +100,6 @@ class SettingsRoundTripPropertyTest : FunSpec({
                 settings.themeMode shouldBe themeMode
                 // modelId always returns the default in the settings flow (R11 AC1).
                 settings.modelId shouldBe AppSettings().modelId
-                settings.systemPrompt shouldBe systemPrompt
             }
 
             // Verify the written modelId is accessible via the legacy migrator accessor.

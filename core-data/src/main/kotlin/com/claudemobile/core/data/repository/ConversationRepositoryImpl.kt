@@ -82,6 +82,16 @@ public class ConversationRepositoryImpl @Inject constructor(
 
     override suspend fun insertMessage(message: Message): Message {
         messageDao.insert(message.toEntity())
+        // Update session message_count and lastActivityAt
+        val sessionEntity = sessionDao.getById(message.sessionId.value)
+        if (sessionEntity != null) {
+            sessionDao.update(
+                sessionEntity.copy(
+                    messageCount = sessionEntity.messageCount + 1,
+                    lastActivityAt = message.createdAt.toEpochMillis(),
+                )
+            )
+        }
         return message
     }
 

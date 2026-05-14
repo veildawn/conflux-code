@@ -46,16 +46,28 @@ public class ProotEnvironmentProviderImpl @Inject constructor(
     override fun buildSpawnConfig(workspacePath: String, apiKey: String): SpawnConfig {
         val prootBin = File(nativeDir, "libproot.so")
 
+        // NOTE: The actual prompt is appended by the caller via SpawnConfig.args.
+        // This builds the base config; SendMessageUseCase adds "-p <message>" at spawn time.
+        //
+        // Workspace: we use the rootfs-internal /root directory as the working
+        // directory. The SAF-based workspacePath from the session is not a real
+        // filesystem path and cannot be bind-mounted into proot. A future
+        // iteration will resolve SAF URIs to real paths or use a dedicated
+        // app-private directory.
         val args = mutableListOf(
             "--link2symlink",
-            "-0",
             "--rootfs=${rootfsDir.absolutePath}",
             "-b", "/dev",
             "-b", "/proc",
             "-b", "/sys",
-            "-b", "$workspacePath:/workspace",
-            "-w", "/workspace",
-            "/usr/local/bin/claude",
+            "-w", "/root",
+            "/usr/bin/claude",
+            // --output-format stream-json: structured JSON events on stdout.
+            // --verbose: required for stream-json with --print.
+            // --allowedTools: permit all tool operations without confirmation.
+            "--output-format", "stream-json",
+            "--verbose",
+            "--allowedTools", "Bash(*) Edit(*) Read(*)",
         )
 
         val envVars = buildMap {
@@ -64,12 +76,11 @@ public class ProotEnvironmentProviderImpl @Inject constructor(
             put("PROOT_LOADER_32", File(nativeDir, "libproot-loader32.so").absolutePath)
             put("PROOT_TMP_DIR", File(prefixDir, "tmp").absolutePath)
             put("HOME", "/root")
-            // Override Android's TMPDIR (which points outside the proot mount
-            // tree) with /tmp so tools like npm and apt can create temp files.
             put("TMPDIR", "/tmp")
             put("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
-            put("TERM", "xterm-256color")
+            put("TERM", "dumb")
             put("LANG", "en_US.UTF-8")
+            // Placeholder — overwritten by SpawnEnvAdapter with real credentials
             put("ANTHROPIC_API_KEY", apiKey)
         }
 

@@ -60,8 +60,9 @@ class SessionsViewModelActiveProfileTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeSessionsRepository()
+        fakeProfileStore = FakeProviderProfileStore(activeProfileFlow)
         getSessionsUseCase = GetSessionsUseCase(fakeRepository)
-        createSessionUseCase = CreateSessionUseCase(fakeRepository, FakeCredentialStore())
+        createSessionUseCase = CreateSessionUseCase(fakeRepository, fakeProfileStore)
         deleteSessionUseCase = DeleteSessionUseCase(fakeRepository)
         renameSessionUseCase = RenameSessionUseCase(fakeRepository)
 
@@ -69,7 +70,6 @@ class SessionsViewModelActiveProfileTest {
         mockContentResolver = mockk(relaxed = true)
         every { mockContext.contentResolver } returns mockContentResolver
 
-        fakeProfileStore = FakeProviderProfileStore(activeProfileFlow)
         getActiveProfileUseCase = GetActiveProfileUseCase(fakeProfileStore)
     }
 
