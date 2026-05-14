@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Claude Mobile</string>
+
+    <!-- Bootstrap screen -->
+    <string name="bootstrap_heading">Setting Up Environment</string>
+    <string name="bootstrap_subheading">Preparing the embedded Linux environment for Claude CLI</string>
+    <string name="bootstrap_not_started">Waiting to start…</string>
+    <string name="bootstrap_not_started_description">Bootstrap not yet started</string>
+    <string name="bootstrap_ready">Environment ready!</string>
+    <string name="bootstrap_ready_description">Bootstrap complete. Environment is ready.</string>
+    <string name="bootstrap_progress_description">Bootstrap in progress: %1$s, %2$d percent complete</string>
+    <string name="bootstrap_progress_bar_description">Bootstrap progress: %1$d percent</string>
+    <string name="bootstrap_step_counter">Step %1$d of %2$d</string>
+    <string name="bootstrap_step_progress_description">Step progress: %1$d percent</string>
+    <string name="bootstrap_step_progress">Working: %1$d%%</string>
+    <string name="bootstrap_installer_output_description">Installer output: %1$s</string>
+    <string name="bootstrap_failed_description">Bootstrap failed at step: %1$s. Error: %2$s</string>
+    <string name="bootstrap_failed_title">Setup Failed</string>
+    <string name="bootstrap_failed_at">Failed at: %1$s</string>
+    <string name="bootstrap_retry_description">Retry bootstrap setup</string>
+    <string name="bootstrap_retry_button">Retry</string>
+    <string name="bootstrap_settings_description">Open settings</string>
+    <string name="bootstrap_settings_button">Settings</string>
+    <string name="bootstrap_storage_guidance_description">Storage guidance: need %1$d megabytes, have %2$d megabytes available. Please free at least %3$d megabytes.</string>
+    <string name="bootstrap_storage_title">Storage Space Required</string>
+    <string name="bootstrap_storage_required">Required: %1$s</string>
+    <string name="bootstrap_storage_available">Available: %1$s</string>
+    <string name="bootstrap_storage_free_space">Please free at least %1$s by removing unused apps, clearing cache, or deleting files.</string>
+
+    <!-- Bootstrap step names -->
+    <string name="bootstrap_step_extract_prefix">Extracting Prefix</string>
+    <string name="bootstrap_step_verify_prefix">Verifying Prefix</string>
+    <string name="bootstrap_step_install_rootfs">Extracting Linux Rootfs</string>
+    <string name="bootstrap_step_configure_provider">Configure Provider</string>
+    <string name="bootstrap_step_verify_all">Final Verification</string>
+    <string name="bootstrap_step_complete">Complete</string>
+
+    <!-- Notification permission messages -->
+    <string name="permission_notification_denied">Notification permission denied. Background session notifications will be suppressed.</string>
+    <string name="permission_notification_rationale">Notifications are needed to show background session status. Please grant the permission.</string>
+
+    <!-- Legacy single-key migration messaging (R8 AC4) -->
+    <string name="provider_migration_failed">Couldn\'t migrate your previous API key. Add a provider to continue.</string>
+    <string name="provider_migration_retry">Retry migration</string>
+</resources>

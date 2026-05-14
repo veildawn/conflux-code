@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CodeBlock -->
+    <string name="core_ui_code_block_description">代码块</string>
+    <string name="core_ui_code_block_language_description">%1$s 代码块</string>
+    <string name="core_ui_copy_code_description">复制代码到剪贴板</string>
+
+    <!-- MessageBubble -->
+    <string name="core_ui_role_user">用户消息</string>
+    <string name="core_ui_role_assistant">助手消息</string>
+    <string name="core_ui_role_tool">工具结果消息</string>
+    <string name="core_ui_role_system">系统消息</string>
+    <string name="core_ui_copy_message_description">复制消息到剪贴板</string>
+
+    <!-- StreamingIndicator -->
+    <string name="core_ui_streaming_description">正在生成回复</string>
+
+    <!-- ToolCallBlock -->
+    <string name="core_ui_tool_call_description">工具调用：%1$s，状态：%2$s</string>
+    <string name="core_ui_copy_tool_call_description">复制工具调用到剪贴板</string>
+    <string name="core_ui_tool_status_pending">等待中</string>
+    <string name="core_ui_tool_status_running">运行中</string>
+    <string name="core_ui_tool_status_completed">已完成</string>
+    <string name="core_ui_tool_status_failed">失败</string>
+    <string name="core_ui_tool_arguments_title">参数</string>
+    <string name="core_ui_tool_result_title">结果</string>
+    <string name="core_ui_collapse_section_description">折叠 %1$s 部分</string>
+    <string name="core_ui_expand_section_description">展开 %1$s 部分</string>
+
+    <!-- MarkdownContent -->
+    <string name="core_ui_markdown_content_description">Markdown 内容</string>
+    <string name="core_ui_formatted_text_description">带链接的格式化文本</string>
+
+    <!-- ProvideAppLocale error -->
+    <string name="core_ui_locale_error">无法应用语言更改。仍在使用之前的语言。</string>
+
+    <!-- ============================================================ -->
+    <!-- ai-provider-presets feature strings (task 11.2)               -->
+    <!-- ============================================================ -->
+
+    <!-- Provider preset display names (design §1 / R1.2) -->
+    <string name="provider_preset_glm_coding_plan">GLM 编码套餐</string>
+    <string name="provider_preset_minimax_token_plan">MiniMax Token 套餐</string>
+    <string name="provider_preset_kimi_code_plan">Kimi 编码套餐</string>
+
+    <!-- Custom (non-preset) provider label -->
+    <string name="provider_custom_label">自定义（兼容 Anthropic）</string>
+
+    <!-- Provider selection screen top bar title (design §6.1) -->
+    <string name="provider_selection_title">选择服务商</string>
+
+    <!-- Provider editor field labels (design §6, R3.3) -->
+    <string name="provider_field_displayname">显示名称</string>
+    <string name="provider_field_base_url">Base URL</string>
+    <string name="provider_field_api_key">API 密钥</string>
+    <string name="provider_field_model">模型</string>
+    <string name="provider_field_small_fast_model">小型快速模型（可选）</string>
+    <string name="provider_field_auth_header_style">身份验证头</string>
+    <string name="provider_auth_style_api_key">x-api-key</string>
+    <string name="provider_auth_style_auth_token">Authorization: Bearer</string>
+
+    <!-- Provider form validation errors (R2.4, R3.3–3.6, R4.4) -->
+    <string name="provider_error_displayname_empty">请填写显示名称。</string>
+    <string name="provider_error_baseurl_invalid">Base URL 必须是有效的 HTTPS 地址。</string>
+    <string name="provider_error_apikey_empty">请填写 API 密钥。</string>
+    <string name="provider_error_model_empty">请填写模型。</string>
+    <string name="provider_error_baseurl_locked">预设配置的 Base URL 无法修改。</string>
+
+    <!-- Connection_Test outcomes (design §7, R7.3) -->
+    <string name="provider_test_ok">连接成功。</string>
+    <string name="provider_test_unauthorized">身份验证失败，请检查 API 密钥。</string>
+    <string name="provider_test_unreachable">无法连接到服务器，请检查网络和 Base URL。</string>
+    <string name="provider_test_invalid_url">Base URL 无效，必须是完整的 HTTPS 地址。</string>
+    <string name="provider_test_invalid_model">该服务商未找到对应模型。</string>
+    <string name="provider_test_unknown_error">连接测试失败，出现未知错误。</string>
+
+    <!-- Legacy single-key migration messaging (R8.1) -->
+    <string name="provider_migration_failed">无法迁移此前的 API 密钥。请添加服务商以继续。</string>
+    <string name="provider_migration_retry">重试迁移</string>
+    <string name="provider_default_profile_displayname">Anthropic（默认）</string>
+
+    <!-- Bootstrap / onboarding step -->
+    <string name="bootstrap_step_configure_provider">配置 AI 服务商</string>
+
+    <!-- Settings entry (R11.4) -->
+    <string name="settings_providers_entry">服务商</string>
+    <string name="settings_active_profile_summary">当前启用：%1$s</string>
+
+    <!-- Destructive "clear all providers" confirmation -->
+    <string name="provider_clear_all_title">清除所有服务商？</string>
+    <string name="provider_clear_all_message">将删除所有已保存的服务商配置并清除当前启用项。此操作无法撤销。</string>
+</resources>

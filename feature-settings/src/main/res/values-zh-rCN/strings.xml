@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen title -->
+    <string name="settings_title">设置</string>
+    <string name="settings_navigate_back_description">返回</string>
+
+    <!-- Language section (Req 3.5, 5.1) -->
+    <string name="settings_language_title">语言</string>
+    <string name="settings_language_follow_system">跟随系统</string>
+
+    <!-- Providers section (R5 AC3, R11 AC3, R11 AC6, ai-provider-presets task 7.10) -->
+    <string name="settings_active_profile_card_description">当前服务商摘要</string>
+    <string name="settings_active_profile_none">尚未配置启用的服务商</string>
+    <string name="settings_active_profile_model">模型：%1$s</string>
+    <string name="settings_providers_entry_description">管理 AI 服务商配置</string>
+    <string name="settings_providers_entry_supporting">管理服务商配置、API 密钥和当前启用项</string>
+
+    <!-- Model section -->
+    <string name="settings_model_title">模型</string>
+    <string name="settings_model_id_label">模型 ID</string>
+    <string name="settings_model_id_description">Claude 模型标识符</string>
+    <string name="settings_system_prompt_label">系统提示词</string>
+    <string name="settings_system_prompt_description">默认系统提示词</string>
+
+    <!-- Appearance / UI Preferences section -->
+    <string name="settings_appearance_title">外观</string>
+    <string name="settings_theme_label">主题</string>
+    <string name="settings_theme_selection_description">主题模式选择</string>
+    <string name="settings_theme_item_description">主题模式：%1$s</string>
+
+    <!-- Font scale -->
+    <string name="settings_font_scale_label">字体缩放（%1$s–%2$s）</string>
+    <string name="settings_font_scale_description">字体缩放比例</string>
+    <string name="settings_font_scale_error">必须在 %1$s 和 %2$s 之间</string>
+
+    <!-- Streaming render rate -->
+    <string name="settings_render_rate_label">流式渲染速率（%1$d–%2$d 毫秒）</string>
+    <string name="settings_render_rate_description">流式渲染速率（毫秒）</string>
+    <string name="settings_render_rate_error">必须在 %1$d 和 %2$d 之间</string>
+
+    <!-- Workspace & Service section -->
+    <string name="settings_workspace_service_title">工作区与服务</string>
+    <string name="settings_workspace_path_label">默认工作区路径</string>
+    <string name="settings_workspace_path_description">默认工作区目录路径</string>
+    <string name="settings_auto_start_service_label">自动启动前台服务</string>
+    <string name="settings_auto_start_service_description">切换自动启动前台服务</string>
+
+    <!-- Health check section -->
+    <string name="settings_health_title">环境健康检查</string>
+    <string name="settings_health_none">尚未执行健康检查</string>
+    <string name="settings_health_run_description">运行环境健康检查</string>
+    <string name="settings_health_checking">检查中…</string>
+    <string name="settings_health_run_button">运行健康检查</string>
+    <string name="settings_health_results_description">健康检查结果</string>
+    <string name="settings_health_row_embedded_prefix">内嵌前缀</string>
+    <string name="settings_health_row_rootfs">Ubuntu Rootfs</string>
+    <string name="settings_health_row_node">Node.js</string>
+    <string name="settings_health_row_claude_cli">Claude CLI</string>
+    <string name="settings_health_status_installed">已安装</string>
+    <string name="settings_health_status_not_installed">未安装</string>
+    <string name="settings_health_status_with_version">%1$s（%2$s）</string>
+    <string name="settings_health_storage_label">存储</string>
+    <string name="settings_health_storage_usage">已用：%1$s | 可用：%2$s</string>
+    <string name="settings_health_storage_usage_description">存储使用情况：已用 %1$s，可用 %2$s</string>
+
+    <!-- Byte size formatting -->
+    <string name="settings_bytes_gb">%1$s GB</string>
+    <string name="settings_bytes_mb">%1$s MB</string>
+    <string name="settings_bytes_kb">%1$s KB</string>
+    <string name="settings_bytes_b">%1$d B</string>
+
+    <!-- Clear all providers confirmation dialog buttons (used in ProviderListScreen) -->
+    <string name="settings_remove_api_key_confirm_button">全部清除</string>
+    <string name="settings_remove_api_key_cancel_button">取消</string>
+
+    <!-- Diagnostics section -->
+    <string name="settings_diagnostics_title">诊断</string>
+    <string name="settings_diagnostics_load_description">加载诊断日志</string>
+    <string name="settings_diagnostics_view_button">查看日志</string>
+    <string name="settings_diagnostics_share_description">导出诊断信息以便分享</string>
+    <string name="settings_diagnostics_share_button">分享日志</string>
+    <string name="settings_diagnostics_entries_description">诊断日志条目</string>
+    <string name="settings_diagnostics_recent_entries">最近条目（%1$d）</string>
+    <string name="settings_diagnostics_entry_line">[%1$s] %2$s</string>
+    <string name="settings_diagnostics_more_entries">… 还有 %1$d 条</string>
+    <string name="settings_diagnostics_export_description">已脱敏的诊断信息导出已就绪</string>
+    <string name="settings_diagnostics_export_ready">导出就绪</string>
+    <string name="settings_diagnostics_export_body">诊断日志已导出，API 密钥已脱敏。使用分享按钮发送给支持团队。</string>
+    <string name="settings_diagnostics_dismiss_description">关闭导出</string>
+    <string name="settings_diagnostics_dismiss_button">关闭</string>
+</resources>

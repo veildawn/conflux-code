@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen title -->
+    <string name="sessions_title">Sessions</string>
+    <string name="sessions_search_description">Search sessions</string>
+    <string name="sessions_create_fab_description">Create new session</string>
+
+    <!-- Search bar -->
+    <string name="sessions_search_placeholder">Search sessions…</string>
+    <string name="sessions_search_input_description">Search sessions by title or workspace</string>
+
+    <!-- Loading / Empty / Error states -->
+    <string name="sessions_loading_description">Loading sessions</string>
+    <string name="sessions_empty_title">No sessions yet</string>
+    <string name="sessions_empty_body">Create a new session to start chatting with Claude</string>
+    <string name="sessions_empty_button">Create Session</string>
+    <string name="sessions_empty_button_description">Create your first session</string>
+    <string name="sessions_error_title">Something went wrong</string>
+    <string name="sessions_retry_button">Retry</string>
+    <string name="sessions_retry_description">Retry loading sessions</string>
+
+    <!-- Session item -->
+    <string name="sessions_item_description">Session: %1$s, %2$d messages, last active %3$s. Long press to rename, swipe left to delete.</string>
+    <string name="sessions_message_count">%1$d messages</string>
+    <string name="sessions_rename_item_description">Rename session %1$s</string>
+    <string name="sessions_delete_item_description">Delete session %1$s</string>
+    <string name="sessions_swipe_delete_label">Delete</string>
+
+    <!-- New session dialog -->
+    <string name="sessions_new_dialog_title">New Session</string>
+    <string name="sessions_new_title_label">Session title</string>
+    <string name="sessions_new_title_placeholder">New Session</string>
+    <string name="sessions_new_default_title">New Session</string>
+    <string name="sessions_new_workspace_label">Workspace directory</string>
+    <string name="sessions_new_select_directory_description">Select workspace directory</string>
+    <string name="sessions_new_select_directory_button">Select Directory</string>
+    <string name="sessions_new_change_directory_button">Change Directory</string>
+    <string name="sessions_new_create_button">Create</string>
+    <string name="sessions_new_cancel_button">Cancel</string>
+
+    <!-- Delete confirmation dialog -->
+    <string name="sessions_delete_dialog_title">Delete Session</string>
+    <string name="sessions_delete_dialog_body">Are you sure you want to delete \"%1$s\"? This will remove all messages in this session.</string>
+    <string name="sessions_delete_dialog_confirm">Delete</string>
+    <string name="sessions_delete_dialog_cancel">Cancel</string>
+
+    <!-- Rename dialog -->
+    <string name="sessions_rename_dialog_title">Rename Session</string>
+    <string name="sessions_rename_title_label">Session title</string>
+    <string name="sessions_rename_confirm_button">Rename</string>
+    <string name="sessions_rename_cancel_button">Cancel</string>
+
+    <!-- No Active_Profile banner (R5 AC5, R11 AC5) -->
+    <string name="sessions_no_provider_banner_message">No provider configured. Select a provider to start new sessions.</string>
+    <string name="sessions_no_provider_banner_action">Configure</string>
+    <string name="sessions_no_provider_banner_description">No provider configured banner. Tap Configure to set up a provider.</string>
+</resources>

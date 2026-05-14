@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CodeBlock -->
+    <string name="core_ui_code_block_description">Code block</string>
+    <string name="core_ui_code_block_language_description">Code block in %1$s</string>
+    <string name="core_ui_copy_code_description">Copy code to clipboard</string>
+
+    <!-- MessageBubble -->
+    <string name="core_ui_role_user">User message</string>
+    <string name="core_ui_role_assistant">Assistant message</string>
+    <string name="core_ui_role_tool">Tool result message</string>
+    <string name="core_ui_role_system">System message</string>
+    <string name="core_ui_copy_message_description">Copy message to clipboard</string>
+
+    <!-- StreamingIndicator -->
+    <string name="core_ui_streaming_description">Response streaming</string>
+
+    <!-- ToolCallBlock -->
+    <string name="core_ui_tool_call_description">Tool call: %1$s, status: %2$s</string>
+    <string name="core_ui_copy_tool_call_description">Copy tool call to clipboard</string>
+    <string name="core_ui_tool_status_pending">pending</string>
+    <string name="core_ui_tool_status_running">running</string>
+    <string name="core_ui_tool_status_completed">completed</string>
+    <string name="core_ui_tool_status_failed">failed</string>
+    <string name="core_ui_tool_arguments_title">Arguments</string>
+    <string name="core_ui_tool_result_title">Result</string>
+    <string name="core_ui_collapse_section_description">Collapse %1$s section</string>
+    <string name="core_ui_expand_section_description">Expand %1$s section</string>
+
+    <!-- MarkdownContent -->
+    <string name="core_ui_markdown_content_description">Markdown content</string>
+    <string name="core_ui_formatted_text_description">Formatted text with links</string>
+
+    <!-- ProvideAppLocale error -->
+    <string name="core_ui_locale_error">Couldn\'t apply language change. The previous language is still active.</string>
+
+    <!-- ============================================================ -->
+    <!-- ai-provider-presets feature strings (task 11.1)               -->
+    <!-- ============================================================ -->
+
+    <!-- Provider preset display names (design §1 / R1.2) -->
+    <string name="provider_preset_glm_coding_plan">GLM Coding Plan</string>
+    <string name="provider_preset_minimax_token_plan">MiniMax Token Plan</string>
+    <string name="provider_preset_kimi_code_plan">Kimi Code Plan</string>
+
+    <!-- Custom (non-preset) provider label -->
+    <string name="provider_custom_label">Custom (Anthropic compatible)</string>
+
+    <!-- Provider selection screen top bar title (design §6.1) -->
+    <string name="provider_selection_title">Select Provider</string>
+
+    <!-- Provider editor field labels (design §6, R3.3) -->
+    <string name="provider_field_displayname">Display name</string>
+    <string name="provider_field_base_url">Base URL</string>
+    <string name="provider_field_api_key">API key</string>
+    <string name="provider_field_model">Model</string>
+    <string name="provider_field_small_fast_model">Small/fast model (optional)</string>
+    <string name="provider_field_auth_header_style">Authentication header</string>
+    <string name="provider_auth_style_api_key">x-api-key</string>
+    <string name="provider_auth_style_auth_token">Authorization: Bearer</string>
+
+    <!-- Provider form validation errors (R2.4, R3.3–3.6, R4.4) -->
+    <string name="provider_error_displayname_empty">Display name is required.</string>
+    <string name="provider_error_baseurl_invalid">Base URL must be a valid HTTPS URL.</string>
+    <string name="provider_error_apikey_empty">API key is required.</string>
+    <string name="provider_error_model_empty">Model is required.</string>
+    <string name="provider_error_baseurl_locked">Base URL is locked for preset-based profiles.</string>
+
+    <!-- Connection_Test outcomes (design §7, R7.3) -->
+    <string name="provider_test_ok">Connection successful.</string>
+    <string name="provider_test_unauthorized">Authentication failed. Check the API key.</string>
+    <string name="provider_test_unreachable">Couldn\'t reach the server. Check your network and base URL.</string>
+    <string name="provider_test_invalid_url">Base URL is invalid. It must be a full HTTPS URL.</string>
+    <string name="provider_test_invalid_model">Model not found on this provider.</string>
+    <string name="provider_test_unknown_error">Connection test failed with an unknown error.</string>
+
+    <!-- Legacy single-key migration messaging (R8.1) -->
+    <string name="provider_migration_failed">Couldn\'t migrate your previous API key. Add a provider to continue.</string>
+    <string name="provider_migration_retry">Retry migration</string>
+    <string name="provider_default_profile_displayname">Anthropic (default)</string>
+
+    <!-- Bootstrap / onboarding step -->
+    <string name="bootstrap_step_configure_provider">Configure an AI provider</string>
+
+    <!-- Settings entry (R11.4) -->
+    <string name="settings_providers_entry">Providers</string>
+    <string name="settings_active_profile_summary">Active: %1$s</string>
+
+    <!-- Destructive "clear all providers" confirmation -->
+    <string name="provider_clear_all_title">Clear all providers?</string>
+    <string name="provider_clear_all_message">This removes every saved provider profile and clears the active selection. This action can\'t be undone.</string>
+</resources>

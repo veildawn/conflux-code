@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Claude Mobile</string>
+
+    <!-- Bootstrap screen -->
+    <string name="bootstrap_heading">正在设置环境</string>
+    <string name="bootstrap_subheading">正在为 Claude CLI 准备嵌入式 Linux 环境</string>
+    <string name="bootstrap_not_started">等待启动…</string>
+    <string name="bootstrap_not_started_description">引导尚未开始</string>
+    <string name="bootstrap_ready">环境已就绪！</string>
+    <string name="bootstrap_ready_description">引导完成。环境已就绪。</string>
+    <string name="bootstrap_progress_description">引导进行中：%1$s，已完成 %2$d%%</string>
+    <string name="bootstrap_progress_bar_description">引导进度：%1$d%%</string>
+    <string name="bootstrap_step_counter">第 %1$d 步，共 %2$d 步</string>
+    <string name="bootstrap_step_progress_description">当前步骤进度：%1$d%%</string>
+    <string name="bootstrap_step_progress">进行中：%1$d%%</string>
+    <string name="bootstrap_installer_output_description">安装程序输出：%1$s</string>
+    <string name="bootstrap_failed_description">引导在步骤 %1$s 失败。错误：%2$s</string>
+    <string name="bootstrap_failed_title">设置失败</string>
+    <string name="bootstrap_failed_at">失败于：%1$s</string>
+    <string name="bootstrap_retry_description">重试引导设置</string>
+    <string name="bootstrap_retry_button">重试</string>
+    <string name="bootstrap_settings_description">打开设置</string>
+    <string name="bootstrap_settings_button">设置</string>
+    <string name="bootstrap_storage_guidance_description">存储指引：需要 %1$d 兆字节，可用 %2$d 兆字节。请至少释放 %3$d 兆字节。</string>
+    <string name="bootstrap_storage_title">需要存储空间</string>
+    <string name="bootstrap_storage_required">需要：%1$s</string>
+    <string name="bootstrap_storage_available">可用：%1$s</string>
+    <string name="bootstrap_storage_free_space">请至少释放 %1$s 空间，可通过卸载未使用的应用、清除缓存或删除文件来实现。</string>
+
+    <!-- Bootstrap step names -->
+    <string name="bootstrap_step_extract_prefix">正在提取前缀</string>
+    <string name="bootstrap_step_verify_prefix">正在验证前缀</string>
+    <string name="bootstrap_step_install_rootfs">正在解压 Linux Rootfs</string>
+    <string name="bootstrap_step_configure_provider">配置 Provider</string>
+    <string name="bootstrap_step_verify_all">最终验证</string>
+    <string name="bootstrap_step_complete">完成</string>
+
+    <!-- Notification permission messages -->
+    <string name="permission_notification_denied">通知权限被拒绝。后台会话通知将被禁止。</string>
+    <string name="permission_notification_rationale">需要通知权限以显示后台会话状态。请授予该权限。</string>
+
+    <!-- Legacy single-key migration messaging (R8 AC4) -->
+    <string name="provider_migration_failed">无法迁移此前的 API 密钥。请添加服务商以继续。</string>
+    <string name="provider_migration_retry">重试迁移</string>
+</resources>

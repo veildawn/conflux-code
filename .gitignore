@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+.kotlin/
+
+# Bundled bootstrap assets downloaded during build (~27 MB each, not checked in)
+/app/src/main/assets/prefix.zip
+/app/src/main/assets/prefix/
+/app/src/main/jniLibs/
+/core-bridge/src/main/jniLibs/
+
+# Pre-baked rootfs tarballs (Node.js + Claude CLI). Built offline by
+# app/build-support/build-rootfs.sh. Each file is 80-140 MB so they stay
+# out of git; CI / developers re-generate them with the script.
+/app/build-support/prebuilt-rootfs/*.tar.xz
+/app/build-support/prebuilt-rootfs/manifest.tsv

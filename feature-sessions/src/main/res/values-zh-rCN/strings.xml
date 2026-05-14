@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen title -->
+    <string name="sessions_title">会话</string>
+    <string name="sessions_search_description">搜索会话</string>
+    <string name="sessions_create_fab_description">创建新会话</string>
+
+    <!-- Search bar -->
+    <string name="sessions_search_placeholder">搜索会话…</string>
+    <string name="sessions_search_input_description">按标题或工作区搜索会话</string>
+
+    <!-- Loading / Empty / Error states -->
+    <string name="sessions_loading_description">正在加载会话</string>
+    <string name="sessions_empty_title">暂无会话</string>
+    <string name="sessions_empty_body">创建新会话以开始与 Claude 聊天</string>
+    <string name="sessions_empty_button">创建会话</string>
+    <string name="sessions_empty_button_description">创建您的第一个会话</string>
+    <string name="sessions_error_title">出了点问题</string>
+    <string name="sessions_retry_button">重试</string>
+    <string name="sessions_retry_description">重试加载会话</string>
+
+    <!-- Session item -->
+    <string name="sessions_item_description">会话：%1$s，%2$d 条消息，最后活跃于 %3$s。长按重命名，左滑删除。</string>
+    <string name="sessions_message_count">%1$d 条消息</string>
+    <string name="sessions_rename_item_description">重命名会话 %1$s</string>
+    <string name="sessions_delete_item_description">删除会话 %1$s</string>
+    <string name="sessions_swipe_delete_label">删除</string>
+
+    <!-- New session dialog -->
+    <string name="sessions_new_dialog_title">新建会话</string>
+    <string name="sessions_new_title_label">会话标题</string>
+    <string name="sessions_new_title_placeholder">新会话</string>
+    <string name="sessions_new_default_title">新会话</string>
+    <string name="sessions_new_workspace_label">工作区目录</string>
+    <string name="sessions_new_select_directory_description">选择工作区目录</string>
+    <string name="sessions_new_select_directory_button">选择目录</string>
+    <string name="sessions_new_change_directory_button">更改目录</string>
+    <string name="sessions_new_create_button">创建</string>
+    <string name="sessions_new_cancel_button">取消</string>
+
+    <!-- Delete confirmation dialog -->
+    <string name="sessions_delete_dialog_title">删除会话</string>
+    <string name="sessions_delete_dialog_body">确定要删除"%1$s"吗？这将移除该会话中的所有消息。</string>
+    <string name="sessions_delete_dialog_confirm">删除</string>
+    <string name="sessions_delete_dialog_cancel">取消</string>
+
+    <!-- Rename dialog -->
+    <string name="sessions_rename_dialog_title">重命名会话</string>
+    <string name="sessions_rename_title_label">会话标题</string>
+    <string name="sessions_rename_confirm_button">重命名</string>
+    <string name="sessions_rename_cancel_button">取消</string>
+
+    <!-- No Active_Profile banner (R5 AC5, R11 AC5) -->
+    <string name="sessions_no_provider_banner_message">未配置 Provider。请选择一个 Provider 以开始新会话。</string>
+    <string name="sessions_no_provider_banner_action">配置</string>
+    <string name="sessions_no_provider_banner_description">未配置 Provider 提示横幅。点击"配置"以设置 Provider。</string>
+</resources>

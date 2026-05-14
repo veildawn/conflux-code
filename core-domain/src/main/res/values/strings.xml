@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Provider preset display names for the ai-provider-presets feature.
+
+        These live in `core-domain` because the `ProviderPreset` constants
+        (see ProviderRegistry.kt) hold a compile-time `@StringRes` id, and
+        `core-domain` cannot depend on `core-ui` (which depends on
+        `core-domain`). UI layers resolve these ids via `stringResource(...)`
+        and remain free to override or localize the same keys through their
+        own resource overlays.
+
+        Design reference: design.md §1 "Provider_Registry (内置预设)".
+    -->
+    <string name="provider_preset_glm_coding_plan" translatable="true">GLM Coding Plan</string>
+    <string name="provider_preset_minimax_token_plan" translatable="true">MiniMax Token Plan</string>
+    <string name="provider_preset_kimi_code_plan" translatable="true">Kimi Code Plan</string>
+</resources>

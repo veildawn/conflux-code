@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen title -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_navigate_back_description">Back</string>
+
+    <!-- Language section (Req 3.5, 5.1) -->
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_follow_system">Follow System</string>
+
+    <!-- Providers section (R5 AC3, R11 AC3, R11 AC6, ai-provider-presets task 7.10) -->
+    <string name="settings_active_profile_card_description">Active provider summary</string>
+    <string name="settings_active_profile_none">No active provider configured</string>
+    <string name="settings_active_profile_model">Model: %1$s</string>
+    <string name="settings_providers_entry_description">Manage AI provider profiles</string>
+    <string name="settings_providers_entry_supporting">Manage profiles, API keys, and active provider</string>
+
+    <!-- Model section -->
+    <string name="settings_model_title">Model</string>
+    <string name="settings_model_id_label">Model ID</string>
+    <string name="settings_model_id_description">Claude model identifier</string>
+    <string name="settings_system_prompt_label">System Prompt</string>
+    <string name="settings_system_prompt_description">Default system prompt</string>
+
+    <!-- Appearance / UI Preferences section -->
+    <string name="settings_appearance_title">Appearance</string>
+    <string name="settings_theme_label">Theme</string>
+    <string name="settings_theme_selection_description">Theme mode selection</string>
+    <string name="settings_theme_item_description">Theme mode: %1$s</string>
+
+    <!-- Font scale -->
+    <string name="settings_font_scale_label">Font Scale (%1$s–%2$s)</string>
+    <string name="settings_font_scale_description">Font scale factor</string>
+    <string name="settings_font_scale_error">Must be between %1$s and %2$s</string>
+
+    <!-- Streaming render rate -->
+    <string name="settings_render_rate_label">Streaming Render Rate (%1$d–%2$d ms)</string>
+    <string name="settings_render_rate_description">Streaming render rate in milliseconds</string>
+    <string name="settings_render_rate_error">Must be between %1$d and %2$d</string>
+
+    <!-- Workspace & Service section -->
+    <string name="settings_workspace_service_title">Workspace &amp; Service</string>
+    <string name="settings_workspace_path_label">Default Workspace Path</string>
+    <string name="settings_workspace_path_description">Default workspace directory path</string>
+    <string name="settings_auto_start_service_label">Auto-start foreground service</string>
+    <string name="settings_auto_start_service_description">Toggle auto-start foreground service</string>
+
+    <!-- Health check section -->
+    <string name="settings_health_title">Environment Health</string>
+    <string name="settings_health_none">No health check performed yet</string>
+    <string name="settings_health_run_description">Run environment health check</string>
+    <string name="settings_health_checking">Checking…</string>
+    <string name="settings_health_run_button">Run Health Check</string>
+    <string name="settings_health_results_description">Health check results</string>
+    <string name="settings_health_row_embedded_prefix">Embedded Prefix</string>
+    <string name="settings_health_row_rootfs">Ubuntu Rootfs</string>
+    <string name="settings_health_row_node">Node.js</string>
+    <string name="settings_health_row_claude_cli">Claude CLI</string>
+    <string name="settings_health_status_installed">Installed</string>
+    <string name="settings_health_status_not_installed">Not installed</string>
+    <string name="settings_health_status_with_version">%1$s (%2$s)</string>
+    <string name="settings_health_storage_label">Storage</string>
+    <string name="settings_health_storage_usage">Used: %1$s | Available: %2$s</string>
+    <string name="settings_health_storage_usage_description">Storage usage: %1$s used, %2$s available</string>
+
+    <!-- Byte size formatting -->
+    <string name="settings_bytes_gb">%1$s GB</string>
+    <string name="settings_bytes_mb">%1$s MB</string>
+    <string name="settings_bytes_kb">%1$s KB</string>
+    <string name="settings_bytes_b">%1$d B</string>
+
+    <!-- Clear all providers confirmation dialog buttons (used in ProviderListScreen) -->
+    <string name="settings_remove_api_key_confirm_button">Clear All</string>
+    <string name="settings_remove_api_key_cancel_button">Cancel</string>
+
+    <!-- Diagnostics section -->
+    <string name="settings_diagnostics_title">Diagnostics</string>
+    <string name="settings_diagnostics_load_description">Load diagnostics log</string>
+    <string name="settings_diagnostics_view_button">View Logs</string>
+    <string name="settings_diagnostics_share_description">Export diagnostics for sharing</string>
+    <string name="settings_diagnostics_share_button">Share Logs</string>
+    <string name="settings_diagnostics_entries_description">Diagnostics log entries</string>
+    <string name="settings_diagnostics_recent_entries">Recent Entries (%1$d)</string>
+    <string name="settings_diagnostics_entry_line">[%1$s] %2$s</string>
+    <string name="settings_diagnostics_more_entries">… and %1$d more entries</string>
+    <string name="settings_diagnostics_export_description">Redacted diagnostics export ready for sharing</string>
+    <string name="settings_diagnostics_export_ready">Export Ready</string>
+    <string name="settings_diagnostics_export_body">Diagnostics log exported with API key redacted. Use the share button to send to support.</string>
+    <string name="settings_diagnostics_dismiss_description">Dismiss export</string>
+    <string name="settings_diagnostics_dismiss_button">Dismiss</string>
+</resources>

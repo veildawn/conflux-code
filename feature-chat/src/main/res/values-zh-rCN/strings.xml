@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat top bar -->
+    <string name="chat_title_fallback">聊天</string>
+    <string name="chat_workspace_path_description">工作区路径：%1$s</string>
+    <string name="chat_open_file_tree_description">打开文件树</string>
+    <string name="chat_navigate_back_description">返回</string>
+
+    <!-- Offline banner (Req 11.1) -->
+    <string name="chat_offline_banner_description">无网络连接。消息将发送至 Claude CLI，CLI 可能会报告自身的网络错误。</string>
+    <string name="chat_offline_banner_text">无网络连接</string>
+
+    <!-- Error banner (Req 3.8, 11.2) -->
+    <string name="chat_error_description">错误：%1$s</string>
+    <string name="chat_retry_description">重试失败的操作</string>
+    <string name="chat_retry_button">重试</string>
+    <string name="chat_dismiss_error_description">关闭错误提示</string>
+
+    <!-- Empty message list -->
+    <string name="chat_empty_text">开始与 Claude 对话</string>
+    <string name="chat_empty_description">空对话。开始与 Claude 对话。</string>
+
+    <!-- Message list -->
+    <string name="chat_message_list_description">消息列表</string>
+
+    <!-- Input bar -->
+    <string name="chat_input_description">消息输入框</string>
+    <string name="chat_input_placeholder">输入消息…</string>
+    <string name="chat_cancel_description">取消当前回复</string>
+    <string name="chat_send_description">发送消息</string>
+
+    <!-- Clipboard label (shown in clipboard history UIs on some Android versions) -->
+    <string name="chat_clipboard_label">Claude 消息</string>
+</resources>

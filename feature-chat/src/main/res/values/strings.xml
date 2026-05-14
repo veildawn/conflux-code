@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat top bar -->
+    <string name="chat_title_fallback">Chat</string>
+    <string name="chat_workspace_path_description">Workspace path: %1$s</string>
+    <string name="chat_open_file_tree_description">Open file tree</string>
+    <string name="chat_navigate_back_description">Back</string>
+
+    <!-- Offline banner (Req 11.1) -->
+    <string name="chat_offline_banner_description">No network connection. Messages will be sent to Claude CLI which may report its own network error.</string>
+    <string name="chat_offline_banner_text">No network connection</string>
+
+    <!-- Error banner (Req 3.8, 11.2) -->
+    <string name="chat_error_description">Error: %1$s</string>
+    <string name="chat_retry_description">Retry failed action</string>
+    <string name="chat_retry_button">Retry</string>
+    <string name="chat_dismiss_error_description">Dismiss error</string>
+
+    <!-- Empty message list -->
+    <string name="chat_empty_text">Start a conversation with Claude</string>
+    <string name="chat_empty_description">Empty conversation. Start a conversation with Claude.</string>
+
+    <!-- Message list -->
+    <string name="chat_message_list_description">Message list</string>
+
+    <!-- Input bar -->
+    <string name="chat_input_description">Message input field</string>
+    <string name="chat_input_placeholder">Type a message…</string>
+    <string name="chat_cancel_description">Cancel current response</string>
+    <string name="chat_send_description">Send message</string>
+
+    <!-- Clipboard label (shown in clipboard history UIs on some Android versions) -->
+    <string name="chat_clipboard_label">Claude Message</string>
+</resources>
