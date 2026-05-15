@@ -79,7 +79,7 @@ class SettingsRoundTripPropertyTest : FunSpec({
             Arb.enum<ThemeMode>(),
             arbModelId(),
             Arb.string(0..200)
-        ) { fontScale, streamingRenderRate, themeMode, modelId ->
+        ) { fontScale, streamingRenderRate, themeMode, modelId, _ ->
             val (_, settingsStore) = createSettingsStore()
 
             // Write all settings

@@ -23,6 +23,7 @@ import com.claudemobile.core.domain.repository.ConversationRepository
 import com.claudemobile.core.domain.usecase.CancelTurnUseCase
 import com.claudemobile.core.domain.usecase.RetryFailedTurnUseCase
 import com.claudemobile.core.domain.usecase.SendMessageUseCase
+import com.claudemobile.core.domain.usecase.ProotEnvironmentProvider
 import com.claudemobile.core.domain.usecase.SpawnCliUseCase
 import com.claudemobile.core.domain.usecase.StreamResponseUseCase
 import io.mockk.mockk
@@ -102,6 +103,14 @@ class EndToEndDataFlowTest {
         sendMessageUseCase = SendMessageUseCase(
             conversationRepository = fakeRepository,
             cliBridge = fakeCliBridge,
+            prootEnvironmentProvider = object : ProotEnvironmentProvider {
+                override fun buildSpawnConfig(workspacePath: String, apiKey: String): SpawnConfig =
+                    SpawnConfig(
+                        command = "/proot",
+                        args = listOf("/usr/bin/claude"),
+                        workingDir = workspacePath,
+                    )
+            },
             timeProvider = fakeTimeProvider,
             uuidGenerator = fakeUuidGenerator,
         )

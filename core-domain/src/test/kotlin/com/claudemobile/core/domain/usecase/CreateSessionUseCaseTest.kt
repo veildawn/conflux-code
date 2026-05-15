@@ -32,8 +32,8 @@ class CreateSessionUseCaseTest : DescribeSpec({
         smallFastModel = null,
         authHeaderStyle = AuthHeaderStyle.AuthToken,
         presetReference = PresetReference.Preset("glm_coding_plan"),
-        createdAt = Instant.now(),
-        updatedAt = Instant.now(),
+        createdAt = Instant.now().toEpochMilli(),
+        updatedAt = Instant.now().toEpochMilli(),
     )
 
     describe("CreateSessionUseCase") {

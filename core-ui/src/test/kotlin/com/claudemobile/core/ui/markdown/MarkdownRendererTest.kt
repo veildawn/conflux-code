@@ -106,7 +106,7 @@ class MarkdownRendererTest : DescribeSpec({
                 OutputEvent.ToolCallResult("bash", "output", true)
             )
             val result = MarkdownRenderer.renderToAnnotatedString(events)
-            result.text shouldContain "✓"
+            result.text shouldContain "Done"
             result.text shouldContain "bash"
         }
 
@@ -115,7 +115,7 @@ class MarkdownRendererTest : DescribeSpec({
                 OutputEvent.ToolCallResult("bash", "error", false)
             )
             val result = MarkdownRenderer.renderToAnnotatedString(events)
-            result.text shouldContain "✗"
+            result.text shouldContain "Failed"
             result.text shouldContain "bash"
         }
 

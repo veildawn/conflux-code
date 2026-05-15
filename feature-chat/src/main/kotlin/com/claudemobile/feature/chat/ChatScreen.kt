@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,8 +35,11 @@ import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -116,7 +119,7 @@ public fun ChatScreen(
                 onNavigateBack = onNavigateBack,
             )
         },
-        contentWindowInsets = WindowInsets.ime,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -159,6 +162,9 @@ public fun ChatScreen(
                 onCancel = {
                     viewModel.onAction(ChatAction.Cancel)
                 },
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
             )
         }
     }
@@ -510,6 +516,7 @@ private fun ChatInputBar(
     onInputChanged: (String) -> Unit,
     onSend: () -> Unit,
     onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val spacing = LocalSpacing.current
     val focusManager = LocalFocusManager.current
@@ -518,9 +525,9 @@ private fun ChatInputBar(
     val sendDescription = stringResource(R.string.chat_send_description)
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .padding(horizontal = spacing.lg, vertical = spacing.sm)
             .onKeyEvent { keyEvent ->
                 when (keyEvent.key) {
@@ -562,7 +569,7 @@ private fun ChatInputBar(
 
         if (isStreaming) {
             // Requirement 3.6: cancel control replaces send button during streaming
-            IconButton(
+            FilledTonalIconButton(
                 onClick = onCancel,
                 modifier = Modifier
                     .size(48.dp)
@@ -570,16 +577,19 @@ private fun ChatInputBar(
                     .semantics {
                         contentDescription = cancelDescription
                     },
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                ),
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
                 )
             }
         } else {
             // Requirement 3.5: send control
-            IconButton(
+            FilledIconButton(
                 onClick = {
                     if (inputText.isNotBlank()) {
                         onSend()
@@ -592,15 +602,16 @@ private fun ChatInputBar(
                     .semantics {
                         contentDescription = sendDescription
                     },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = null,
-                    tint = if (inputText.isNotBlank()) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
                 )
             }
         }

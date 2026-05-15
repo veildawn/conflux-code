@@ -1,110 +1,120 @@
 package com.claudemobile.core.data.diagnostics
 
+import android.content.Context
 import com.claudemobile.core.common.TimeProvider
 import com.claudemobile.core.common.UuidGenerator
 import com.claudemobile.core.common.toEpochMillis
-import com.claudemobile.core.data.database.dao.DiagnosticsLogDao
-import com.claudemobile.core.data.database.entity.DiagnosticsLogEntity
 import com.claudemobile.core.domain.repository.CredentialStore
 import com.claudemobile.core.domain.repository.DiagnosticsEntry
 import com.claudemobile.core.domain.repository.DiagnosticsRepository
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import java.util.LinkedList
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 
 /**
  * Maximum number of stderr lines kept per session in the in-memory ring buffer.
  */
 private const val STDERR_RING_BUFFER_SIZE: Int = 256
 
+private const val MAX_PERSISTED_ENTRIES: Int = 10_000
+
 /**
- * Implementation of [DiagnosticsRepository] backed by Room database with:
- * - Per-session stderr ring buffer (256 lines in-memory)
- * - LRU eviction at 10,000 entries via DAO
- * - API key redaction on export (base-spec single key + ai-provider-presets
- *   multi-profile defence-in-depth, see [redactProviderSecrets])
+ * File-backed diagnostics repository.
+ *
+ * Diagnostics are intentionally separate from Claude transcripts, but no longer
+ * require Room. They live in one compact NDJSON file under app-private storage.
  */
 @Singleton
-public class DiagnosticsRepositoryImpl @Inject constructor(
-    private val diagnosticsLogDao: DiagnosticsLogDao,
+public class DiagnosticsRepositoryImpl internal constructor(
+    private val logFile: File,
     private val credentialStore: CredentialStore,
     private val uuidGenerator: UuidGenerator,
     private val timeProvider: TimeProvider,
     private val providerProfileSnapshot: ProviderProfileSnapshot,
 ) : DiagnosticsRepository {
 
-    /**
-     * Legacy four-arg constructor retained so that base-spec tests written
-     * before the `ai-provider-presets` delta (notably
-     * `DiagnosticsRedactionPropertyTest`) continue to compile unchanged.
-     * The defaulted [ProviderProfileSnapshot] is a no-op that returns an
-     * empty list, so behaviour for callers that do not wire the snapshot
-     * is identical to the pre-delta implementation.
-     */
+    @Inject
     public constructor(
-        diagnosticsLogDao: DiagnosticsLogDao,
+        @ApplicationContext context: Context,
         credentialStore: CredentialStore,
         uuidGenerator: UuidGenerator,
         timeProvider: TimeProvider,
+        providerProfileSnapshot: ProviderProfileSnapshot,
     ) : this(
-        diagnosticsLogDao = diagnosticsLogDao,
+        logFile = File(context.filesDir, "diagnostics/logs.jsonl"),
         credentialStore = credentialStore,
         uuidGenerator = uuidGenerator,
         timeProvider = timeProvider,
-        providerProfileSnapshot = ProviderProfileSnapshot { emptyList() },
+        providerProfileSnapshot = providerProfileSnapshot,
     )
 
-    /**
-     * In-memory ring buffer for stderr lines per session.
-     * Key: sessionId, Value: bounded LinkedList of stderr lines (max 256).
-     */
+    private val json: Json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+    }
+    private val mutex: Mutex = Mutex()
+    private val entries: MutableStateFlow<List<DiagnosticsEntry>> =
+        MutableStateFlow(readEntriesFromDisk())
     private val stderrBuffers: MutableMap<String, LinkedList<String>> = mutableMapOf()
-    private val bufferMutex: Mutex = Mutex()
 
     override suspend fun logEvent(
         sessionId: String?,
         eventType: String,
         message: String,
-        details: String?
+        details: String?,
     ) {
-        // If this is a stderr event, also track in the ring buffer
-        if (eventType == "stderr" && sessionId != null) {
-            addToStderrBuffer(sessionId, message)
-        }
+        mutex.withLock {
+            if (eventType == "stderr" && sessionId != null) {
+                addToStderrBuffer(sessionId, message)
+            }
 
-        val entity = DiagnosticsLogEntity(
-            id = 0,
-            sessionId = sessionId,
-            eventType = eventType,
-            timestamp = timeProvider.now().toEpochMillis(),
-            message = message,
-            details = details
-        )
+            val entry = DiagnosticsEntry(
+                id = uuidGenerator.generate(),
+                sessionId = sessionId,
+                eventType = eventType,
+                timestamp = timeProvider.now().toEpochMillis(),
+                message = message,
+                details = details,
+            )
 
-        diagnosticsLogDao.insert(entity)
-
-        // Evict old entries to maintain the 10,000 cap
-        diagnosticsLogDao.deleteOldest()
-    }
-
-    override fun getSessionLogs(sessionId: String): Flow<List<DiagnosticsEntry>> {
-        return diagnosticsLogDao.getBySessionId(sessionId).map { entities ->
-            entities.map { it.toDomain() }
+            val updated = (entries.value + entry)
+                .takeLast(MAX_PERSISTED_ENTRIES)
+            entries.value = updated
+            rewriteFile(updated)
         }
     }
 
-    override suspend fun getRecentLogs(limit: Int): List<DiagnosticsEntry> {
-        return diagnosticsLogDao.getRecentLogs(limit).map { it.toDomain() }
-    }
+    override fun getSessionLogs(sessionId: String): Flow<List<DiagnosticsEntry>> =
+        entries.map { current ->
+            current
+                .filter { entry -> entry.sessionId == sessionId }
+                .sortedByDescending(DiagnosticsEntry::timestamp)
+        }
+
+    override suspend fun getRecentLogs(limit: Int): List<DiagnosticsEntry> =
+        entries.value
+            .sortedByDescending(DiagnosticsEntry::timestamp)
+            .take(limit)
 
     override suspend fun exportRedacted(sessionId: String): String {
         val apiKey = credentialStore.getApiKey()
-        val entries = getSessionEntriesSnapshot(sessionId)
+        val sessionEntries = entries.value
+            .filter { entry -> entry.sessionId == sessionId }
+            .sortedBy(DiagnosticsEntry::timestamp)
 
         val builder = StringBuilder()
         builder.appendLine("=== Diagnostics Log ===")
@@ -112,35 +122,25 @@ public class DiagnosticsRepositoryImpl @Inject constructor(
         builder.appendLine("Exported: ${timeProvider.now()}")
         builder.appendLine()
 
-        for (entry in entries) {
+        for (entry in sessionEntries) {
             builder.appendLine("[${entry.timestamp}] [${entry.eventType}] ${entry.message}")
             if (entry.details != null) {
                 builder.appendLine("  Details: ${entry.details}")
             }
         }
 
-        // Append stderr ring buffer content if available
         val stderrLines = getStderrBuffer(sessionId)
         if (stderrLines.isNotEmpty()) {
             builder.appendLine()
             builder.appendLine("=== Stderr (last ${stderrLines.size} lines) ===")
-            for (line in stderrLines) {
-                builder.appendLine(line)
-            }
+            stderrLines.forEach(builder::appendLine)
         }
 
         var result = builder.toString()
-
-        // Redact API key if one is stored
-        if (apiKey != null && apiKey.isNotEmpty()) {
+        if (!apiKey.isNullOrEmpty()) {
             result = result.replace(apiKey, "[REDACTED]")
         }
 
-        // Defence-in-depth: redact every ai-provider-presets ProviderProfile
-        // apiKey / baseUrl userinfo currently tracked by the store. In a
-        // well-behaved system this never rewrites anything because the
-        // source-site logging rules (R10 AC4) already prevent writing the
-        // raw values; this step is the second line of defence (design §9.3).
         val profiles = providerProfileSnapshot.list()
         if (profiles.isNotEmpty()) {
             result = redactProviderSecrets(result, profiles)
@@ -150,44 +150,64 @@ public class DiagnosticsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearOldEntries() {
-        diagnosticsLogDao.deleteOldest()
-    }
-
-    // --- Stderr Ring Buffer ---
-
-    private suspend fun addToStderrBuffer(sessionId: String, line: String) {
-        bufferMutex.withLock {
-            val buffer = stderrBuffers.getOrPut(sessionId) { LinkedList() }
-            buffer.addLast(line)
-            while (buffer.size > STDERR_RING_BUFFER_SIZE) {
-                buffer.removeFirst()
-            }
+        mutex.withLock {
+            val trimmed = entries.value.takeLast(MAX_PERSISTED_ENTRIES)
+            entries.value = trimmed
+            rewriteFile(trimmed)
         }
     }
 
-    private suspend fun getStderrBuffer(sessionId: String): List<String> {
-        bufferMutex.withLock {
-            return stderrBuffers[sessionId]?.toList() ?: emptyList()
+    private fun readEntriesFromDisk(): List<DiagnosticsEntry> {
+        if (!logFile.exists()) return emptyList()
+        return logFile.readLines()
+            .mapNotNull(::parseEntry)
+            .takeLast(MAX_PERSISTED_ENTRIES)
+    }
+
+    private fun parseEntry(line: String): DiagnosticsEntry? {
+        val objectValue = runCatching { json.parseToJsonElement(line).jsonObject }.getOrNull()
+            ?: return null
+        return DiagnosticsEntry(
+            id = objectValue.string("id") ?: return null,
+            sessionId = objectValue.string("sessionId"),
+            eventType = objectValue.string("eventType") ?: return null,
+            timestamp = objectValue.string("timestamp")?.toLongOrNull() ?: return null,
+            message = objectValue.string("message") ?: return null,
+            details = objectValue.string("details"),
+        )
+    }
+
+    private fun rewriteFile(entriesToPersist: List<DiagnosticsEntry>) {
+        logFile.parentFile?.mkdirs()
+        logFile.writeText(
+            entriesToPersist.joinToString(
+                separator = "\n",
+                postfix = if (entriesToPersist.isEmpty()) "" else "\n",
+            ) { entry -> entry.toJsonLine() },
+        )
+    }
+
+    private fun DiagnosticsEntry.toJsonLine(): String =
+        buildJsonObject {
+            put("id", id)
+            if (sessionId != null) put("sessionId", sessionId)
+            put("eventType", eventType)
+            put("timestamp", timestamp.toString())
+            put("message", message)
+            if (details != null) put("details", details)
+        }.toString()
+
+    private fun JsonObject.string(key: String): String? =
+        (this[key] as? JsonPrimitive)?.contentOrNull
+
+    private fun addToStderrBuffer(sessionId: String, line: String) {
+        val buffer = stderrBuffers.getOrPut(sessionId) { LinkedList() }
+        buffer.addLast(line)
+        while (buffer.size > STDERR_RING_BUFFER_SIZE) {
+            buffer.removeFirst()
         }
     }
 
-    // --- Internal Helpers ---
-
-    /**
-     * Gets a snapshot of session entries from the database (non-reactive, for export).
-     */
-    private suspend fun getSessionEntriesSnapshot(sessionId: String): List<DiagnosticsEntry> {
-        return diagnosticsLogDao.getBySessionId(sessionId)
-            .first()
-            .map { it.toDomain() }
-    }
-
-    private fun DiagnosticsLogEntity.toDomain(): DiagnosticsEntry = DiagnosticsEntry(
-        id = id.toString(),
-        sessionId = sessionId,
-        eventType = eventType,
-        timestamp = timestamp,
-        message = message,
-        details = details
-    )
+    private fun getStderrBuffer(sessionId: String): List<String> =
+        stderrBuffers[sessionId]?.toList().orEmpty()
 }

@@ -136,7 +136,7 @@ class NetworkMonitorTest {
         fun `browsing existing sessions is unaffected by network state`() {
             // Network state does not affect local data access
             networkMonitor.setConnected(false)
-            // Local operations (Room DB, DataStore) continue to work
+            // Local operations (transcripts, DataStore) continue to work
             // This is validated by the architecture: NetworkMonitor is informational only
         }
     }

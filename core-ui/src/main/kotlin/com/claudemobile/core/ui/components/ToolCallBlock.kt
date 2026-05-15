@@ -7,14 +7,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,8 +28,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.ClipboardManager
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -35,6 +40,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.claudemobile.core.domain.model.ToolCallMetadata
 import com.claudemobile.core.domain.model.ToolCallStatus
@@ -65,13 +72,6 @@ public fun ToolCallBlock(
 
     var argumentsExpanded by rememberSaveable { mutableStateOf(false) }
     var resultExpanded by rememberSaveable { mutableStateOf(false) }
-
-    val statusIcon = when (toolCall.status) {
-        ToolCallStatus.PENDING -> "⏳"
-        ToolCallStatus.RUNNING -> "⚙"
-        ToolCallStatus.COMPLETED -> "✓"
-        ToolCallStatus.FAILED -> "✗"
-    }
 
     val statusColor = when (toolCall.status) {
         ToolCallStatus.PENDING -> MaterialTheme.colorScheme.outline
@@ -112,21 +112,22 @@ public fun ToolCallBlock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(spacing.sm),
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(spacing.xs),
                 ) {
-                    Text(
-                        text = statusIcon,
-                        color = statusColor,
-                        style = MaterialTheme.typography.titleSmall,
-                    )
                     Text(
                         text = toolCall.toolName,
                         style = MaterialTheme.typography.titleSmall.copy(
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.SemiBold,
                         ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    ToolStatusPill(
+                        statusDescription = statusDescription,
+                        statusColor = statusColor,
                     )
                 }
 
@@ -142,9 +143,11 @@ public fun ToolCallBlock(
                             contentDescription = copyToolCallDescription
                         },
                 ) {
-                    Text(
-                        text = "📋",
-                        style = MaterialTheme.typography.bodySmall,
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_copy),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
@@ -178,6 +181,35 @@ public fun ToolCallBlock(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ToolStatusPill(
+    statusDescription: String,
+    statusColor: Color,
+) {
+    val spacing = LocalSpacing.current
+
+    Row(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.extraSmall)
+            .background(statusColor.copy(alpha = 0.12f))
+            .padding(horizontal = spacing.sm, vertical = spacing.xxs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(spacing.xs),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(statusColor),
+        )
+        Text(
+            text = statusDescription,
+            style = MaterialTheme.typography.labelSmall,
+            color = statusColor,
+        )
     }
 }
 

@@ -65,7 +65,7 @@ public object MarkdownRenderer {
 
     private fun AnnotatedString.Builder.renderToolCallStart(event: OutputEvent.ToolCallStart) {
         pushStyle(SpanStyle(fontFamily = FontFamily.Monospace, color = ToolCallColor))
-        append("⚙ ${event.toolName}")
+        append("Tool: ${event.toolName}")
         pop()
         if (event.arguments.isNotEmpty()) {
             append(" ")
@@ -77,9 +77,9 @@ public object MarkdownRenderer {
 
     private fun AnnotatedString.Builder.renderToolCallResult(event: OutputEvent.ToolCallResult) {
         val statusColor = if (event.success) SuccessColor else ErrorColor
-        val statusIcon = if (event.success) "✓" else "✗"
+        val statusLabel = if (event.success) "Done" else "Failed"
         pushStyle(SpanStyle(color = statusColor))
-        append("$statusIcon ${event.toolName}")
+        append("$statusLabel: ${event.toolName}")
         pop()
         if (event.result.isNotEmpty()) {
             append(": ")

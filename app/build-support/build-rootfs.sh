@@ -37,6 +37,7 @@ BUNDLED_VERSION="ubuntu24.04-node18-claude-$(date -u +%Y.%m.%d)"
 
 NPM_VERSION="${NPM_VERSION:-10.8.2}"
 CLAUDE_VERSION="${CLAUDE_VERSION:-latest}"
+UBUNTU_MIRROR="${UBUNTU_MIRROR:-https://mirrors.aliyun.com/ubuntu-ports/}"
 
 # Maps the Android ABI string to docker --platform.
 abi_to_platform() {
@@ -56,8 +57,8 @@ build_one() {
     platform="$(abi_to_platform "$abi")"
 
     local build_dir
-    build_dir="$(mktemp -d "${TMPDIR:-/tmp}/claudemobile-rootfs.XXXXXX")"
-    trap "rm -rf '$build_dir'" RETURN
+    mkdir -p "$OUT_DIR/.tmp"
+    build_dir="$(mktemp -d "$OUT_DIR/.tmp/claudemobile-rootfs.XXXXXX")"
 
     echo
     echo "=========================================================="
@@ -65,6 +66,22 @@ build_one() {
     echo "=========================================================="
 
     local container="claudemobile-rootfs-$abi-$$"
+    local host_ca="$OUT_DIR/host-ca.pem"
+    local docker_volume_args=()
+
+    if [ -n "${HOST_CA_BUNDLE:-}" ] && [ -f "$HOST_CA_BUNDLE" ]; then
+        cp "$HOST_CA_BUNDLE" "$host_ca"
+    elif [ -f /etc/ssl/cert.pem ]; then
+        cp /etc/ssl/cert.pem "$host_ca"
+    elif [ -f /opt/homebrew/etc/ca-certificates/cert.pem ]; then
+        cp /opt/homebrew/etc/ca-certificates/cert.pem "$host_ca"
+    fi
+
+    if [ -s "$host_ca" ]; then
+        docker_volume_args+=(
+            -v "$host_ca:/tmp/host-ca.pem:ro"
+        )
+    fi
 
     # Start the container but do not run the setup yet — we want to mount a
     # volume for extraction and then commit the installed state into a tar.
@@ -72,10 +89,12 @@ build_one() {
         --platform "$platform" \
         --name "$container" \
         -v "$build_dir:/out" \
+        "${docker_volume_args[@]}" \
         -e DEBIAN_FRONTEND=noninteractive \
         -e NPM_VERSION="$NPM_VERSION" \
         -e CLAUDE_VERSION="$CLAUDE_VERSION" \
         -e BUNDLED_VERSION="$BUNDLED_VERSION" \
+        -e UBUNTU_MIRROR="$UBUNTU_MIRROR" \
         ubuntu:24.04 \
         bash -euxo pipefail <<'CONTAINER_SH'
 
@@ -83,6 +102,16 @@ build_one() {
 # Inside the emulated container. Install the minimum required components,
 # clean apt caches, and dump the rootfs as a tar stream to /out/rootfs.tar.
 # ---------------------------------------------------------------------------
+
+if [ -f /tmp/host-ca.pem ]; then
+    mkdir -p /etc/ssl/certs
+    cp /tmp/host-ca.pem /etc/ssl/certs/ca-certificates.crt
+fi
+
+if [ -n "${UBUNTU_MIRROR:-}" ] && [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+    sed -i "s|http://ports.ubuntu.com/ubuntu-ports/|${UBUNTU_MIRROR}|g" \
+        /etc/apt/sources.list.d/ubuntu.sources
+fi
 
 apt-get update
 
@@ -236,7 +265,8 @@ rm -rf \
     /usr/share/man/* \
     /usr/share/locale/[a-d]* /usr/share/locale/[e-z]* \
     /root/.npm \
-    /tmp/* /var/tmp/*
+    /tmp/* /var/tmp/* \
+    || true
 
 # Leave a marker inside the rootfs so the runtime can detect bundled images.
 printf 'version=%s\nsource=bundled\n' "$BUNDLED_VERSION" \
@@ -293,6 +323,7 @@ CONTAINER_SH
         >> "$OUT_DIR/manifest.tsv.tmp"
 
     echo "[build-rootfs] done $abi ($(du -h "$out_tar" | awk '{print $1}'))"
+    rm -rf "$build_dir"
 }
 
 main() {

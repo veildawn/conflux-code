@@ -76,16 +76,23 @@ public class SendMessageUseCase @Inject constructor(
 
         return try {
             // In --print mode, each user turn spawns a fresh CLI process.
-            // Terminate any existing process first, then spawn with -p <content>.
+            // First turns pin the UUID up front with --session-id; later turns
+            // resume that same Claude transcript so history stays single-source.
             cliBridge.terminate()
 
             val config = prootEnvironmentProvider.buildSpawnConfig(
                 workspacePath = workspacePath,
                 apiKey = "PLACEHOLDER_OVERWRITTEN_BY_SPAWN_ENV_ADAPTER",
             )
-            // Append "-p" and the user's message to the args list
+            val sessionArgs = if (messages.isEmpty()) {
+                listOf("--session-id", sessionId.value)
+            } else {
+                listOf("--resume", sessionId.value)
+            }
+
+            // Append the session selection flags, "-p", and the user's message.
             val configWithPrompt = config.copy(
-                args = config.args + listOf("-p", content)
+                args = config.args + sessionArgs + listOf("-p", content)
             )
             val spawnResult = cliBridge.spawn(configWithPrompt)
             if (spawnResult.isFailure) {

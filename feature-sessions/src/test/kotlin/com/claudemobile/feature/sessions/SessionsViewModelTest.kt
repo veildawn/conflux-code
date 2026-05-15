@@ -61,7 +61,7 @@ class SessionsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeSessionsRepository()
         getSessionsUseCase = GetSessionsUseCase(fakeRepository)
-        createSessionUseCase = CreateSessionUseCase(fakeRepository, FakeCredentialStore())
+        createSessionUseCase = CreateSessionUseCase(fakeRepository, FakeAlwaysActiveProfileStore())
         deleteSessionUseCase = DeleteSessionUseCase(fakeRepository)
         renameSessionUseCase = RenameSessionUseCase(fakeRepository)
         // Default: active profile is set so existing session-creation tests pass.
@@ -272,9 +272,8 @@ class SessionsViewModelTest {
     @Test
     fun `actionError emits error message on failed create`() = runTest {
         fakeRepository.sessionsFlow.emit(emptyList())
-        // Use a credential store that reports no API key
-        val noKeyCredentialStore = FakeCredentialStore(hasKey = false)
-        createSessionUseCase = CreateSessionUseCase(fakeRepository, noKeyCredentialStore)
+        // Use a provider store that reports no active profile.
+        createSessionUseCase = CreateSessionUseCase(fakeRepository, FakeNoActiveProfileStore())
         val viewModel = SessionsViewModel(
             getSessionsUseCase = getSessionsUseCase,
             createSessionUseCase = createSessionUseCase,
@@ -507,19 +506,6 @@ class FakeSessionsRepository : ConversationRepository {
 }
 
 /**
- * Fake CredentialStore for testing.
- */
-class FakeCredentialStore(
-    private val hasKey: Boolean = true,
-) : com.claudemobile.core.domain.repository.CredentialStore {
-    override suspend fun getApiKey(): String? = if (hasKey) "sk-test-key" else null
-    override suspend fun setApiKey(key: String) {}
-    override suspend fun deleteApiKey() {}
-    override suspend fun hasApiKey(): Boolean = hasKey
-    override fun getMaskedApiKey(): String? = if (hasKey) "...tkey" else null
-}
-
-/**
  * Fake [ProviderProfileStore] that always reports an active profile.
  * Used in [SessionsViewModelTest] so existing session-creation tests continue to pass
  * after [GetActiveProfileUseCase] was injected into [SessionsViewModel].
@@ -543,6 +529,21 @@ class FakeAlwaysActiveProfileStore : ProviderProfileStore {
     override suspend fun list(): List<ProviderProfile> = listOf(profile)
     override suspend fun get(profileId: String): ProviderProfile? = profile
     override suspend fun getActive(): ProviderProfile? = profile
+    override suspend fun upsert(profile: ProviderProfile): Result<Unit> = Result.success(Unit)
+    override suspend fun delete(profileId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun setActive(profileId: String?): Result<Unit> = Result.success(Unit)
+    override suspend fun deleteAll(): Result<Unit> = Result.success(Unit)
+}
+
+/**
+ * Fake [ProviderProfileStore] that reports no active profile.
+ */
+class FakeNoActiveProfileStore : ProviderProfileStore {
+    override fun observeProfiles(): Flow<List<ProviderProfile>> = flowOf(emptyList())
+    override fun observeActiveProfile(): Flow<ProviderProfile?> = flowOf(null)
+    override suspend fun list(): List<ProviderProfile> = emptyList()
+    override suspend fun get(profileId: String): ProviderProfile? = null
+    override suspend fun getActive(): ProviderProfile? = null
     override suspend fun upsert(profile: ProviderProfile): Result<Unit> = Result.success(Unit)
     override suspend fun delete(profileId: String): Result<Unit> = Result.success(Unit)
     override suspend fun setActive(profileId: String?): Result<Unit> = Result.success(Unit)

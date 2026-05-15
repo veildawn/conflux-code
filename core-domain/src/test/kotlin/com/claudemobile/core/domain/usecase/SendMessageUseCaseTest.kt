@@ -5,10 +5,13 @@ import com.claudemobile.core.common.ErrorCode
 import com.claudemobile.core.common.TimeProvider
 import com.claudemobile.core.common.UuidGenerator
 import com.claudemobile.core.domain.bridge.CliBridge
+import com.claudemobile.core.domain.bridge.ProcessHandle
+import com.claudemobile.core.domain.bridge.SpawnConfig
 import com.claudemobile.core.domain.model.Message
 import com.claudemobile.core.domain.model.MessageId
 import com.claudemobile.core.domain.model.MessageRole
 import com.claudemobile.core.domain.model.MessageStatus
+import com.claudemobile.core.domain.model.Session
 import com.claudemobile.core.domain.model.SessionId
 import com.claudemobile.core.domain.repository.ConversationRepository
 import io.kotest.core.spec.style.DescribeSpec
@@ -27,10 +30,20 @@ class SendMessageUseCaseTest : DescribeSpec({
     val cliBridge = mockk<CliBridge>(relaxed = true)
     val timeProvider = mockk<TimeProvider>()
     val uuidGenerator = mockk<UuidGenerator>()
+    val prootEnvironmentProvider = object : ProotEnvironmentProvider {
+        override fun buildSpawnConfig(workspacePath: String, apiKey: String): SpawnConfig =
+            SpawnConfig(
+                command = "/proot",
+                args = listOf("/usr/bin/claude"),
+                envVars = mapOf("ANTHROPIC_API_KEY" to apiKey),
+                workingDir = workspacePath,
+            )
+    }
 
     val useCase = SendMessageUseCase(
         conversationRepository = conversationRepository,
         cliBridge = cliBridge,
+        prootEnvironmentProvider = prootEnvironmentProvider,
         timeProvider = timeProvider,
         uuidGenerator = uuidGenerator,
     )
@@ -42,6 +55,18 @@ class SendMessageUseCaseTest : DescribeSpec({
     beforeEach {
         every { timeProvider.now() } returns testTime
         every { uuidGenerator.generate() } returns testUuid
+        coEvery { conversationRepository.getSession(testSessionId) } returns Session(
+            id = testSessionId,
+            title = "Session",
+            workspacePath = "/workspace",
+            createdAt = testTime,
+            lastActivityAt = testTime,
+            messageCount = 0,
+        )
+        coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
+        coEvery { cliBridge.spawn(any()) } returns Result.success(
+            ProcessHandle(pid = 1L, startedAt = testTime),
+        )
     }
 
     describe("SendMessageUseCase") {
@@ -60,75 +85,50 @@ class SendMessageUseCaseTest : DescribeSpec({
             result.error.code shouldBe ErrorCode.INVALID_ARGUMENT
         }
 
-        it("returns failure when content is empty") {
-            val result = useCase(testSessionId, "")
-
-            result.shouldBeInstanceOf<AppResult.Failure>()
-            result.error.code shouldBe ErrorCode.INVALID_ARGUMENT
-        }
-
-        it("persists message before forwarding to bridge") {
+        it("persists the optimistic message before spawning Claude") {
             coEvery { conversationRepository.getMessages(testSessionId) } returns emptyList()
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
 
             useCase(testSessionId, "Hello Claude")
 
             coVerifyOrder {
                 conversationRepository.insertMessage(any())
-                cliBridge.write(any())
+                cliBridge.terminate()
+                cliBridge.spawn(any())
             }
         }
 
-        it("creates message with SENDING status and correct fields") {
+        it("creates the first turn with --session-id") {
             coEvery { conversationRepository.getMessages(testSessionId) } returns emptyList()
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
 
             useCase(testSessionId, "Hello Claude")
 
             coVerify {
-                conversationRepository.insertMessage(match { msg ->
-                    msg.id == MessageId(testUuid) &&
-                        msg.sessionId == testSessionId &&
-                        msg.role == MessageRole.USER &&
-                        msg.createdAt == testTime &&
-                        msg.position == 0 &&
-                        msg.content == "Hello Claude" &&
-                        msg.status == MessageStatus.SENDING &&
-                        msg.toolCallMetadata == null
+                cliBridge.spawn(match { config ->
+                    config.args.containsAll(
+                        listOf("--session-id", "session-123", "-p", "Hello Claude"),
+                    )
                 })
             }
         }
 
-        it("assigns correct position based on existing messages") {
-            val existingMessages = listOf(
+        it("resumes existing Claude transcripts on later turns") {
+            coEvery { conversationRepository.getMessages(testSessionId) } returns listOf(
                 createTestMessage(position = 0),
-                createTestMessage(position = 1),
-                createTestMessage(position = 2),
             )
-            coEvery { conversationRepository.getMessages(testSessionId) } returns existingMessages
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
 
-            useCase(testSessionId, "Hello")
+            useCase(testSessionId, "Continue")
 
             coVerify {
-                conversationRepository.insertMessage(match { it.position == 3 })
+                cliBridge.spawn(match { config ->
+                    config.args.containsAll(
+                        listOf("--resume", "session-123", "-p", "Continue"),
+                    )
+                })
             }
         }
 
-        it("writes content with newline to bridge") {
+        it("marks message as COMPLETE after successful spawn") {
             coEvery { conversationRepository.getMessages(testSessionId) } returns emptyList()
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
-
-            useCase(testSessionId, "Hello Claude")
-
-            coVerify {
-                cliBridge.write("Hello Claude\n".toByteArray(Charsets.UTF_8))
-            }
-        }
-
-        it("marks message as COMPLETE after successful bridge write") {
-            coEvery { conversationRepository.getMessages(testSessionId) } returns emptyList()
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
 
             val result = useCase(testSessionId, "Hello Claude")
 
@@ -139,10 +139,9 @@ class SendMessageUseCaseTest : DescribeSpec({
             }
         }
 
-        it("marks message as ERROR when bridge write fails") {
+        it("marks message as ERROR when spawn fails") {
             coEvery { conversationRepository.getMessages(testSessionId) } returns emptyList()
-            coEvery { conversationRepository.insertMessage(any()) } answers { firstArg() }
-            coEvery { cliBridge.write(any()) } throws RuntimeException("Bridge disconnected")
+            coEvery { cliBridge.spawn(any()) } returns Result.failure(RuntimeException("spawn failed"))
 
             val result = useCase(testSessionId, "Hello Claude")
 
