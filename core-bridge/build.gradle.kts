@@ -80,4 +80,8 @@ tasks.withType<Test> {
     useJUnitPlatform()
     maxHeapSize = "6g"
     systemProperty("kotest.framework.classpath.scanning.autoscan.disable", "true")
+    jvmArgs(
+        "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+    )
 }

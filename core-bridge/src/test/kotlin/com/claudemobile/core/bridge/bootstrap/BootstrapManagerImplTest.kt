@@ -1,7 +1,9 @@
 package com.claudemobile.core.bridge.bootstrap
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
+import android.os.Build
 import com.claudemobile.core.common.CoroutineDispatchers
 import com.claudemobile.core.domain.bridge.BootstrapState
 import com.claudemobile.core.domain.bridge.BootstrapStep
@@ -11,6 +13,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -34,6 +37,9 @@ class BootstrapManagerImplTest {
     private lateinit var prefixExtractor: PrefixExtractor
     private lateinit var diagnosticsRepository: DiagnosticsRepository
     private lateinit var dispatchers: CoroutineDispatchers
+    private lateinit var claudeCliDetector: ClaudeCliDetector
+    private lateinit var integrityChecker: RootfsIntegrityChecker
+    private lateinit var stateCache: BootstrapStateCache
     private lateinit var bootstrapManager: BootstrapManagerImpl
 
     private val testDispatcher = StandardTestDispatcher()
@@ -44,10 +50,20 @@ class BootstrapManagerImplTest {
         assetManager = mockk(relaxed = true)
         prefixExtractor = mockk(relaxed = true)
         diagnosticsRepository = mockk(relaxed = true)
+        claudeCliDetector = mockk(relaxed = true)
+        integrityChecker = mockk(relaxed = true)
+        stateCache = mockk(relaxed = true)
 
         every { context.filesDir } returns tempDir
         every { context.cacheDir } returns File(tempDir, "cache").also { it.mkdirs() }
         every { context.assets } returns assetManager
+        every { context.applicationInfo } returns ApplicationInfo().apply {
+            nativeLibraryDir = File(tempDir, "native-lib").also { it.mkdirs() }.absolutePath
+        }
+        every { stateCache.isBootstrapCachedAsComplete() } returns false
+
+        // Set Build.SUPPORTED_ABIS via Unsafe for JDK 17+ compatibility
+        setSupportedAbis(arrayOf("arm64-v8a"))
 
         dispatchers = object : CoroutineDispatchers {
             override val default: CoroutineDispatcher = testDispatcher
@@ -64,6 +80,9 @@ class BootstrapManagerImplTest {
             prefixExtractor = prefixExtractor,
             diagnosticsRepository = diagnosticsRepository,
             dispatchers = dispatchers,
+            claudeCliDetector = claudeCliDetector,
+            integrityChecker = integrityChecker,
+            stateCache = stateCache,
         )
     }
 
@@ -83,6 +102,7 @@ class BootstrapManagerImplTest {
         // Set up a complete environment
         setupCompletePrefixDir()
         setupCompleteRootfsDir()
+        every { claudeCliDetector.isInstalled() } returns true
 
         val ready = bootstrapManager.isReady()
         ready shouldBe true
@@ -105,6 +125,7 @@ class BootstrapManagerImplTest {
     fun `verify returns correct status for complete environment`() = runTest(testDispatcher) {
         setupCompletePrefixDir()
         setupCompleteRootfsDir()
+        every { claudeCliDetector.isInstalled() } returns true
 
         val result = bootstrapManager.verify()
         result.isSuccess shouldBe true
@@ -222,6 +243,7 @@ class BootstrapManagerImplTest {
     fun `bootstrap succeeds with complete environment`() = runTest(testDispatcher) {
         setupCompletePrefixDir()
         setupCompleteRootfsDir()
+        every { claudeCliDetector.isInstalled() } returns true
 
         val bundledVersion = PrefixVersion(
             prefixVersion = "1.0.0",
@@ -230,6 +252,7 @@ class BootstrapManagerImplTest {
         )
         every { prefixExtractor.getBundledVersion() } returns bundledVersion
         every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
 
         val result = bootstrapManager.bootstrap()
         result.isSuccess shouldBe true
@@ -287,6 +310,7 @@ class BootstrapManagerImplTest {
     fun `bootstrap sets executable permissions on all binaries in prefix`() = runTest(testDispatcher) {
         setupCompletePrefixDir()
         setupCompleteRootfsDir()
+        every { claudeCliDetector.isInstalled() } returns true
 
         // Add additional binaries to bin/ and usr/bin/
         val prefixDir = File(tempDir, "prefix")
@@ -302,6 +326,7 @@ class BootstrapManagerImplTest {
         )
         every { prefixExtractor.getBundledVersion() } returns bundledVersion
         every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
 
         val result = bootstrapManager.bootstrap()
         result.isSuccess shouldBe true
@@ -350,6 +375,346 @@ class BootstrapManagerImplTest {
         health.storageAvailableBytes shouldNotBe 0L
     }
 
+    // ===== Task 7.1: Fast startup path tests =====
+
+    @Test
+    fun `isReady fast path - cache hit and environment complete returns true`() = runTest(testDispatcher) {
+        // Arrange: cache indicates previous successful bootstrap
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+
+        // Set up file system so quickVerify() passes:
+        // 1. prefix version file exists
+        setupCompletePrefixDir()
+        // 2. rootfs/etc directory exists
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        // 3. claudeCliDetector.isInstalled() returns true
+        every { claudeCliDetector.isInstalled() } returns true
+
+        // Act
+        val ready = bootstrapManager.isReady()
+
+        // Assert
+        ready shouldBe true
+    }
+
+    @Test
+    fun `isReady fast path completes within 1000ms`() = runTest(testDispatcher) {
+        // Arrange: cache hit + environment complete
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        every { claudeCliDetector.isInstalled() } returns true
+
+        // Act: measure wall-clock time of the fast path
+        val startTime = System.currentTimeMillis()
+        val ready = bootstrapManager.isReady()
+        val elapsed = System.currentTimeMillis() - startTime
+
+        // Assert
+        ready shouldBe true
+        // Fast path should be well under 1000ms (only file existence checks)
+        (elapsed < 1000L) shouldBe true
+    }
+
+    @Test
+    fun `isReady fast path does not call invalidate when environment is complete`() = runTest(testDispatcher) {
+        // Arrange
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        every { claudeCliDetector.isInstalled() } returns true
+
+        // Act
+        bootstrapManager.isReady()
+
+        // Assert: invalidate should NOT be called on the fast path
+        verify(exactly = 0) { stateCache.invalidate() }
+    }
+
+    // ===== Task 7.2: Cache invalidation scenario tests =====
+
+    @Test
+    fun `isReady invalidates cache when quickVerify fails - rootfs etc missing`() = runTest(testDispatcher) {
+        // Arrange: cache says complete, but rootfs/etc doesn't exist
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+        setupCompletePrefixDir()
+        // rootfs/etc does NOT exist — quickVerify will fail
+        every { claudeCliDetector.isInstalled() } returns true
+
+        // Act
+        bootstrapManager.isReady()
+
+        // Assert: cache should be invalidated
+        verify(exactly = 1) { stateCache.invalidate() }
+    }
+
+    @Test
+    fun `isReady invalidates cache when quickVerify fails - claude cli not installed`() = runTest(testDispatcher) {
+        // Arrange: cache says complete, but Claude CLI is not installed
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        // claudeCliDetector returns false
+        every { claudeCliDetector.isInstalled() } returns false
+
+        // Act
+        bootstrapManager.isReady()
+
+        // Assert: cache should be invalidated
+        verify(exactly = 1) { stateCache.invalidate() }
+    }
+
+    @Test
+    fun `isReady falls back to full check after cache invalidation`() = runTest(testDispatcher) {
+        // Arrange: cache says complete, but environment is damaged (no rootfs/etc)
+        every { stateCache.isBootstrapCachedAsComplete() } returns true
+        setupCompletePrefixDir()
+        // No rootfs at all — quickVerify fails, full check also fails
+        every { claudeCliDetector.isInstalled() } returns false
+
+        // Act
+        val ready = bootstrapManager.isReady()
+
+        // Assert: falls back to full check which also fails
+        ready shouldBe false
+        verify(exactly = 1) { stateCache.invalidate() }
+    }
+
+    // ===== Task 7.3: Version marker recovery scenario tests =====
+
+    @Test
+    fun `bootstrap recovers version marker when missing but integrity passes`() = runTest(testDispatcher) {
+        // Arrange: prefix is set up, rootfs exists but has no version marker
+        setupCompletePrefixDir()
+        setupCompleteRootfsDir()
+        // Remove version marker to simulate missing marker scenario
+        File(File(tempDir, "rootfs"), ".claudemobile-bundled-version").delete()
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+        every { claudeCliDetector.isInstalled() } returns true
+
+        // Mock asset resolution to return a valid asset path
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+        // Manifest without version info (so no version mismatch logic triggers)
+        every { assetManager.open("rootfs/manifest.tsv") } returns "".byteInputStream()
+
+        // Integrity check passes
+        every { integrityChecker.check() } returns IntegrityResult(
+            directoryStructureValid = true,
+            nodeInstalled = true,
+            claudeCliInstalled = true,
+        )
+
+        // Act
+        val result = bootstrapManager.bootstrap()
+
+        // Assert: recoverVersionMarker should be called
+        verify(exactly = 1) { integrityChecker.recoverVersionMarker() }
+        result.isSuccess shouldBe true
+    }
+
+    @Test
+    fun `bootstrap skips extraction when version marker recovered`() = runTest(testDispatcher) {
+        // Arrange: same as above - rootfs exists, no version marker, integrity passes
+        setupCompletePrefixDir()
+        setupCompleteRootfsDir()
+        // Remove version marker to simulate missing marker scenario
+        File(File(tempDir, "rootfs"), ".claudemobile-bundled-version").delete()
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+        every { claudeCliDetector.isInstalled() } returns true
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+        every { assetManager.open("rootfs/manifest.tsv") } returns "".byteInputStream()
+
+        every { integrityChecker.check() } returns IntegrityResult(
+            directoryStructureValid = true,
+            nodeInstalled = true,
+            claudeCliInstalled = true,
+        )
+
+        // Act
+        val result = bootstrapManager.bootstrap()
+
+        // Assert: no asset open for extraction (no tar extraction happened)
+        verify(exactly = 0) { assetManager.open("rootfs/rootfs-arm64-v8a.tar.xz") }
+        result.isSuccess shouldBe true
+    }
+
+    @Test
+    fun `bootstrap proceeds with extraction when integrity check fails`() = runTest(testDispatcher) {
+        // Arrange: rootfs exists, no version marker, integrity FAILS
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        // Minimal rootfs that won't pass isRootfsInstalled after wipe
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+
+        // Integrity check fails
+        every { integrityChecker.check() } returns IntegrityResult(
+            directoryStructureValid = false,
+            nodeInstalled = false,
+            claudeCliInstalled = false,
+        )
+
+        // Act: bootstrap will try to extract but will fail since we can't
+        // actually run tar in a unit test. The important thing is that
+        // recoverVersionMarker is NOT called.
+        bootstrapManager.bootstrap()
+
+        // Assert: recoverVersionMarker should NOT be called
+        verify(exactly = 0) { integrityChecker.recoverVersionMarker() }
+    }
+
+    // ===== Task 7.4: Version upgrade scenario tests =====
+
+    @Test
+    fun `bootstrap proceeds with upgrade when version mismatch and asset accessible`() = runTest(testDispatcher) {
+        // Arrange: rootfs exists with version "1.0.0", bundled is "2.0.0"
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        File(rootfsDir, "bin").mkdirs()
+        File(rootfsDir, "usr").mkdirs()
+
+        // Write version marker with old version
+        File(rootfsDir, ".claudemobile-bundled-version").writeText("version=1.0.0\nsource=build\n")
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+
+        // Asset list returns the rootfs tarball
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+        // Manifest with version "2.0.0" (different from installed "1.0.0")
+        val manifestContent = "arm64-v8a\t2.0.0\tsha256:abc\t100000\t500000\t5000"
+        every { assetManager.open("rootfs/manifest.tsv") } returns manifestContent.byteInputStream()
+        // Asset is accessible
+        every { assetManager.open("rootfs/rootfs-arm64-v8a.tar.xz") } returns "fake".byteInputStream()
+
+        // Act: bootstrap will try to extract (will fail at tar execution in unit test)
+        // but the key assertion is that it DOES attempt the upgrade (wipes rootfs)
+        val result = bootstrapManager.bootstrap()
+
+        // Assert: the rootfs directory should have been wiped (deleted) for upgrade
+        // Since tar extraction will fail in unit test, bootstrap will fail,
+        // but the important thing is that the asset was verified accessible
+        // and the wipe was attempted
+        verify { assetManager.open("rootfs/rootfs-arm64-v8a.tar.xz") }
+    }
+
+    @Test
+    fun `bootstrap fails without wipe when version mismatch and asset not accessible`() = runTest(testDispatcher) {
+        // Arrange: rootfs exists with version "1.0.0", bundled is "2.0.0"
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        File(rootfsDir, "bin").mkdirs()
+        File(rootfsDir, "usr").mkdirs()
+
+        // Write version marker with old version
+        File(rootfsDir, ".claudemobile-bundled-version").writeText("version=1.0.0\nsource=build\n")
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+
+        // Asset list returns the rootfs tarball
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+        // Manifest with version "2.0.0" (different from installed "1.0.0")
+        val manifestContent = "arm64-v8a\t2.0.0\tsha256:abc\t100000\t500000\t5000"
+        every { assetManager.open("rootfs/manifest.tsv") } returns manifestContent.byteInputStream()
+        // Asset is NOT accessible - throws exception
+        every { assetManager.open("rootfs/rootfs-arm64-v8a.tar.xz") } throws java.io.IOException("Asset not found")
+
+        // Act
+        val result = bootstrapManager.bootstrap()
+
+        // Assert: bootstrap should fail
+        result.isFailure shouldBe true
+        // The rootfs directory should still exist (not wiped)
+        rootfsDir.exists() shouldBe true
+        File(rootfsDir, "etc").exists() shouldBe true
+        // The error message should indicate asset access failure
+        result.exceptionOrNull()?.message shouldNotBe null
+    }
+
+    @Test
+    fun `bootstrap preserves existing rootfs when asset not accessible for upgrade`() = runTest(testDispatcher) {
+        // Arrange: rootfs exists with version "1.0.0", bundled is "2.0.0"
+        setupCompletePrefixDir()
+        val rootfsDir = File(tempDir, "rootfs")
+        rootfsDir.mkdirs()
+        File(rootfsDir, "etc").mkdirs()
+        File(rootfsDir, "bin").mkdirs()
+        File(rootfsDir, "usr").mkdirs()
+
+        // Write a sentinel file to verify rootfs is not wiped
+        val sentinelFile = File(rootfsDir, "sentinel.txt")
+        sentinelFile.writeText("do not delete me")
+
+        // Write version marker with old version
+        File(rootfsDir, ".claudemobile-bundled-version").writeText("version=1.0.0\nsource=build\n")
+
+        val bundledVersion = PrefixVersion(
+            prefixVersion = "1.0.0",
+            extractedAt = "2025-01-15T10:30:00Z",
+            archHash = "sha256:test123"
+        )
+        every { prefixExtractor.getBundledVersion() } returns bundledVersion
+        every { prefixExtractor.needsUpgrade(any(), any()) } returns false
+
+        every { assetManager.list("rootfs") } returns arrayOf("rootfs-arm64-v8a.tar.xz")
+        val manifestContent = "arm64-v8a\t2.0.0\tsha256:abc\t100000\t500000\t5000"
+        every { assetManager.open("rootfs/manifest.tsv") } returns manifestContent.byteInputStream()
+        // Asset not accessible
+        every { assetManager.open("rootfs/rootfs-arm64-v8a.tar.xz") } throws java.io.IOException("Asset not found")
+
+        // Act
+        bootstrapManager.bootstrap()
+
+        // Assert: sentinel file should still exist (rootfs was NOT wiped)
+        sentinelFile.exists() shouldBe true
+        sentinelFile.readText() shouldBe "do not delete me"
+    }
+
     // ===== Helper methods =====
 
     private fun setupCompletePrefixDir() {
@@ -367,6 +732,13 @@ class BootstrapManagerImplTest {
         File(prefixDir, "usr/bin").mkdirs()
         File(prefixDir, "usr/lib").mkdirs()
         File(prefixDir, "tmp").mkdirs()
+
+        // Create a fake shell binary in nativeLibraryDir so setupProot() passes
+        val nativeLibDir = File(tempDir, "native-lib")
+        nativeLibDir.mkdirs()
+        val bashBinary = File(nativeLibDir, "libbash.so")
+        bashBinary.writeText("#!/bin/sh\necho 'GNU bash, version 5.2.0(1)-release'")
+        bashBinary.setExecutable(true, false)
     }
 
     private fun setupCompleteRootfsDir() {
@@ -379,6 +751,9 @@ class BootstrapManagerImplTest {
         File(rootfsDir, "usr/bin").mkdirs()
         File(rootfsDir, "usr/local/bin").mkdirs()
         File(rootfsDir, "usr/lib/node_modules/@anthropic-ai/claude-code").mkdirs()
+
+        // Create version marker so installRootfsReal() recognizes it as installed
+        File(rootfsDir, ".claudemobile-bundled-version").writeText("version=1.0.0\nsource=build\n")
 
         // Create os-release
         File(rootfsDir, "etc/os-release").writeText(
@@ -403,5 +778,24 @@ class BootstrapManagerImplTest {
         File(rootfsDir, "usr/lib/node_modules/@anthropic-ai/claude-code/package.json").writeText(
             """{"name": "@anthropic-ai/claude-code", "version": "1.2.3"}"""
         )
+    }
+
+    /**
+     * Sets [Build.SUPPORTED_ABIS] via sun.misc.Unsafe since the field is
+     * static final and standard reflection is blocked on JDK 17+.
+     */
+    private fun setSupportedAbis(abis: Array<String>) {
+        val unsafeClass = Class.forName("sun.misc.Unsafe")
+        val unsafeField = unsafeClass.getDeclaredField("theUnsafe")
+        unsafeField.isAccessible = true
+        val unsafe = unsafeField.get(null)
+
+        val field = Build::class.java.getDeclaredField("SUPPORTED_ABIS")
+        val base = unsafeClass.getMethod("staticFieldBase", java.lang.reflect.Field::class.java)
+            .invoke(unsafe, field)
+        val offset = unsafeClass.getMethod("staticFieldOffset", java.lang.reflect.Field::class.java)
+            .invoke(unsafe, field) as Long
+        unsafeClass.getMethod("putObject", Any::class.java, Long::class.java, Any::class.java)
+            .invoke(unsafe, base, offset, abis)
     }
 }

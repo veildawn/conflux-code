@@ -43,6 +43,9 @@ public class BootstrapManagerImpl @Inject constructor(
     private val prefixExtractor: PrefixExtractor,
     private val diagnosticsRepository: DiagnosticsRepository,
     private val dispatchers: CoroutineDispatchers,
+    private val claudeCliDetector: ClaudeCliDetector,
+    private val integrityChecker: RootfsIntegrityChecker,
+    private val stateCache: BootstrapStateCache,
 ) : BootstrapManager {
 
     private val _bootstrapState: MutableStateFlow<BootstrapState> =
@@ -204,6 +207,10 @@ public class BootstrapManagerImpl @Inject constructor(
             emitProgress(BootstrapStep.COMPLETE, 1.0f, "Bootstrap complete")
             logDiagnostic("Bootstrap completed successfully — Claude CLI ready")
 
+            // Persist successful bootstrap state for fast-path on next launch
+            val completedVersion = readInstalledRootfsVersion() ?: "unknown"
+            stateCache.markBootstrapComplete(completedVersion)
+
             Result.success(Unit)
         } catch (e: Exception) {
             val step = (_bootstrapState.value as? BootstrapState.InProgress)?.step
@@ -214,7 +221,40 @@ public class BootstrapManagerImpl @Inject constructor(
     }
 
     override suspend fun isReady(): Boolean = withContext(dispatchers.io) {
-        isPrefixExtracted() && isShellExecutable() && isRootfsInstalled() && isClaudeCliInstalled()
+        val startTime = System.currentTimeMillis()
+
+        // Fast path: check cached state first
+        if (stateCache.isBootstrapCachedAsComplete()) {
+            val quickValid = quickVerify()
+            val elapsed = System.currentTimeMillis() - startTime
+            logDiagnostic("isReady() fast path: valid=$quickValid, elapsed=${elapsed}ms")
+            if (quickValid) return@withContext true
+            // Cache is stale — invalidate and fall through to full check
+            stateCache.invalidate()
+        }
+
+        // Slow path: full verification
+        val result = isPrefixExtracted() && isShellExecutable() &&
+            isRootfsInstalled() && isClaudeCliInstalled()
+        val elapsed = System.currentTimeMillis() - startTime
+        logDiagnostic("isReady() full path: ready=$result, elapsed=${elapsed}ms")
+        result
+    }
+
+    /**
+     * Lightweight verification that checks only file existence — no process
+     * execution. Used as the fast path when the state cache indicates a
+     * previous successful bootstrap.
+     *
+     * Checks:
+     * 1. Prefix version file exists (proves prefix was extracted)
+     * 2. rootfs/etc directory exists (proves rootfs was installed)
+     * 3. Claude CLI binary exists (via [claudeCliDetector])
+     */
+    private fun quickVerify(): Boolean {
+        val prefixVersionFile = File(prefixDir, PrefixExtractorImpl.VERSION_FILE_NAME)
+        val rootfsEtc = File(rootfsDir, "etc")
+        return prefixVersionFile.exists() && rootfsEtc.exists() && claudeCliDetector.isInstalled()
     }
 
     // ===== Internal bootstrap steps =====
@@ -306,6 +346,32 @@ public class BootstrapManagerImpl @Inject constructor(
             bundledVersion != null && installedVersion != null && installedVersion != bundledVersion
         val versionMissing = installedVersion == null && rootfsDir.exists()
 
+        // When version marker is missing but rootfs directory exists, run
+        // integrity check before deciding whether to wipe and re-extract.
+        if (versionMissing) {
+            val integrityResult = integrityChecker.check()
+            if (integrityResult.isComplete) {
+                logDiagnostic(
+                    "Version marker missing but integrity check passed " +
+                        "(dirs=${integrityResult.directoryStructureValid}, " +
+                        "node=${integrityResult.nodeInstalled}, " +
+                        "claude=${integrityResult.claudeCliInstalled}); " +
+                        "recovering marker and skipping extraction"
+                )
+                integrityChecker.recoverVersionMarker()
+                emitProgress(BootstrapStep.INSTALL_ROOTFS, 1.0f, "Rootfs verified via integrity check")
+                return Result.success(Unit)
+            }
+            logDiagnostic(
+                "Version marker missing and integrity check failed " +
+                    "(dirs=${integrityResult.directoryStructureValid}, " +
+                    "node=${integrityResult.nodeInstalled}, " +
+                    "claude=${integrityResult.claudeCliInstalled}); " +
+                    "proceeding with full extraction"
+            )
+            wipeRootfsDir()
+        }
+
         if (isRootfsInstalled() && isClaudeCliInstalled() && !versionMismatch && !versionMissing) {
             emitProgress(BootstrapStep.INSTALL_ROOTFS, 1.0f, "Rootfs already installed")
             logDiagnostic(
@@ -315,10 +381,34 @@ public class BootstrapManagerImpl @Inject constructor(
             return Result.success(Unit)
         }
 
-        if (versionMismatch || versionMissing) {
+        if (versionMismatch) {
             logDiagnostic(
                 "Rootfs upgrade required: installed=${installedVersion ?: "<missing>"}, " +
-                    "bundled=${bundledVersion ?: "<unknown>"}; wiping rootfs dir before extraction"
+                    "bundled=${bundledVersion ?: "<unknown>"}; verifying asset before wipe"
+            )
+            // Verify the new rootfs asset is accessible before wiping the existing installation.
+            // This prevents data loss if the asset is missing or unreadable.
+            val assetAccessible = runCatching {
+                context.assets.open(bundled).close()
+            }.isSuccess
+            if (!assetAccessible) {
+                logDiagnostic(
+                    "Cannot access bundled rootfs asset '$bundled' for upgrade " +
+                        "from ${installedVersion ?: "<missing>"} to ${bundledVersion ?: "<unknown>"}; " +
+                        "aborting upgrade to preserve existing rootfs"
+                )
+                return Result.failure(
+                    BootstrapException(
+                        step = BootstrapStep.INSTALL_ROOTFS,
+                        message = "Cannot access bundled rootfs asset before upgrade " +
+                            "(installed=${installedVersion ?: "<missing>"}, " +
+                            "bundled=${bundledVersion ?: "<unknown>"}); aborting wipe",
+                    )
+                )
+            }
+            logDiagnostic(
+                "Asset verified accessible; wiping rootfs for upgrade " +
+                    "from ${installedVersion ?: "<missing>"} to ${bundledVersion ?: "<unknown>"}"
             )
             wipeRootfsDir()
         }
@@ -677,6 +767,12 @@ public class BootstrapManagerImpl @Inject constructor(
     }
 
     private fun isClaudeCliInstalled(): Boolean {
+        return claudeCliDetector.isInstalled()
+    }
+
+    // Kept for reference — original inline detection logic replaced by ClaudeCliDetector
+    @Suppress("unused")
+    private fun isClaudeCliInstalledLegacy(): Boolean {
         // Native binary that the wrapper symlinks point at. This is the
         // file that build-rootfs.sh strictly validates (>1 MiB), so its
         // existence is the canonical "claude is installed" signal.
