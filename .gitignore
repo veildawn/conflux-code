@@ -9,6 +9,7 @@ build/
 .cxx
 local.properties
 .kotlin/
+.kiro/
 
 # Bundled bootstrap assets downloaded during build (~27 MB each, not checked in)
 /app/src/main/assets/prefix.zip
